@@ -1,0 +1,33 @@
+# learnme Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-11-04
+
+## Active Technologies
+- TypeScript 5.2.2, React 18.2.0 + React Router DOM 6.20.1, Framer Motion 10.16.16, Lucide React 0.294.0 (002-quiz-enhancements)
+- localStorage (client-side only, no backend) (002-quiz-enhancements)
+
+- TypeScript 5.2.2, JavaScript (ES2020+) + React 18.2.0, React Router DOM 6.20.1, Framer Motion 10.16.16, Vite 5.0.8 (001-learning-application)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+npm test && npm run lint
+
+## Code Style
+
+TypeScript 5.2.2, JavaScript (ES2020+): Follow standard conventions
+
+## Recent Changes
+- 002-quiz-enhancements: Added TypeScript 5.2.2, React 18.2.0 + React Router DOM 6.20.1, Framer Motion 10.16.16, Lucide React 0.294.0
+- 002-quiz-enhancements: Added TypeScript 5.2.2, React 18.2.0 + React Router DOM 6.20.1, Framer Motion 10.16.16, Lucide React 0.294.0
+
+- 001-learning-application: Added TypeScript 5.2.2, JavaScript (ES2020+) + React 18.2.0, React Router DOM 6.20.1, Framer Motion 10.16.16, Vite 5.0.8
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

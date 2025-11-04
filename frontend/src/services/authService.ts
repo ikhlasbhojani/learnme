@@ -1,0 +1,76 @@
+import { apiClient } from './apiClient'
+import { User } from '../types'
+
+interface AuthPayload {
+  email: string
+  password: string
+}
+
+interface SignupPayload extends AuthPayload {
+  themePreference?: User['themePreference']
+}
+
+interface UpdateProfilePayload {
+  themePreference?: User['themePreference']
+}
+
+interface UserResponse {
+  id: string
+  email: string
+  themePreference?: User['themePreference'] | null
+  createdAt: string
+  updatedAt: string
+  lastLoginAt?: string | null
+}
+
+function mapUser(response: UserResponse): User {
+  const updatedAt = response.updatedAt ?? response.createdAt
+  return {
+    id: response.id,
+    email: response.email,
+    themePreference: response.themePreference ?? null,
+    createdAt: new Date(response.createdAt),
+    updatedAt: new Date(updatedAt),
+    lastLoginAt: response.lastLoginAt ? new Date(response.lastLoginAt) : null,
+  }
+}
+
+export async function signup(payload: SignupPayload): Promise<User> {
+  const response = await apiClient.post<UserResponse>('/auth/signup', payload)
+  return mapUser(response)
+}
+
+export async function login(payload: AuthPayload): Promise<User> {
+  const response = await apiClient.post<UserResponse>('/auth/login', payload)
+  return mapUser(response)
+}
+
+export async function logout(): Promise<void> {
+  await apiClient.post('/auth/logout')
+}
+
+export async function fetchCurrentUser(): Promise<User | null> {
+  try {
+    const response = await apiClient.get<UserResponse>('/auth/me')
+    return mapUser(response)
+  } catch (error) {
+    if ((error as { status?: number }).status === 401) {
+      return null
+    }
+    throw error
+  }
+}
+
+export async function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  const response = await apiClient.patch<UserResponse>('/auth/me', payload)
+  return mapUser(response)
+}
+
+export const authService = {
+  signup,
+  login,
+  logout,
+  fetchCurrentUser,
+  updateProfile,
+}
+
