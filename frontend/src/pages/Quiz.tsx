@@ -760,9 +760,6 @@ export default function Quiz() {
           {/* Header with timer and progress */}
           <div
             style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
               backgroundColor: colors.cardBg,
               border: `1px solid ${colors.border}`,
               padding: theme.spacing.lg,
@@ -770,33 +767,60 @@ export default function Quiz() {
               boxShadow: theme.shadows.md,
             }}
           >
-            <div>
-              <QuestionCount
-                current={currentQuestionIndex + 1}
-                total={quiz.questions.length}
-                format="full"
-              />
+            {quiz.name && (
               <div
                 style={{
-                  marginTop: theme.spacing.xs,
-                  width: '300px',
-                  height: '8px',
-                  backgroundColor: colors.gray[200],
-                  borderRadius: theme.borderRadius.full,
-                  overflow: 'hidden',
+                  marginBottom: theme.spacing.md,
+                  textAlign: 'center',
                 }}
               >
+                <h2
+                  style={{
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.bold,
+                    color: colors.text,
+                    margin: 0,
+                  }}
+                >
+                  {quiz.name}
+                </h2>
+              </div>
+            )}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <div>
+                <QuestionCount
+                  current={currentQuestionIndex + 1}
+                  total={quiz.questions.length}
+                  format="full"
+                />
                 <div
                   style={{
-                    width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`,
-                    height: '100%',
-                    backgroundColor: colors.primary,
-                    transition: 'width 0.3s',
+                    marginTop: theme.spacing.xs,
+                    width: '300px',
+                    height: '8px',
+                    backgroundColor: colors.gray[200],
+                    borderRadius: theme.borderRadius.full,
+                    overflow: 'hidden',
                   }}
-                />
+                >
+                  <div
+                    style={{
+                      width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`,
+                      height: '100%',
+                      backgroundColor: colors.primary,
+                      transition: 'width 0.3s',
+                    }}
+                  />
+                </div>
               </div>
+              <Timer timeRemaining={timeRemaining} totalTime={quiz.configuration.timeDuration} />
             </div>
-            <Timer timeRemaining={timeRemaining} totalTime={quiz.configuration.timeDuration} />
           </div>
 
           {/* Question Card */}

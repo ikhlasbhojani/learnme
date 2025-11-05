@@ -2,11 +2,13 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
+import { SetupGuard } from './components/common/SetupGuard'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useAuth } from './hooks/useAuth'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
+import Setup from './pages/Setup'
 import Home from './pages/Home'
 import LearningModes from './pages/LearningModes'
 import QuizConfigPage from './pages/QuizConfig'
@@ -22,6 +24,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
       <Routes>
+        <Route path="/setup" element={<Setup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route
@@ -57,7 +60,9 @@ function App() {
                   path="/generate-quiz"
                   element={
                     <ProtectedRoute>
-                      <GenerateQuiz />
+                      <SetupGuard>
+                        <GenerateQuiz />
+                      </SetupGuard>
                     </ProtectedRoute>
                   }
                 />

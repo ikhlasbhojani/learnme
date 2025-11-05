@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
+import { Check, ArrowRight } from 'lucide-react'
 import { Question } from '../../types'
 import { Button } from '../common/Button'
-import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
 
 interface QuestionCardProps {
@@ -22,138 +22,78 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   isLastQuestion,
 }) => {
   const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   
   return (
-    <div
-      style={{
-        backgroundColor: colors.cardBg,
-        padding: theme.spacing['2xl'],
-        borderRadius: theme.borderRadius.xl,
-        boxShadow: theme.shadows.lg,
-        border: `1px solid ${colors.border}`,
-        maxWidth: '800px',
-        margin: '0 auto',
-      }}
-    >
-      <div
-        style={{
-          marginBottom: theme.spacing.lg,
-          padding: theme.spacing.sm,
-          backgroundColor: colors.gray[50],
-          borderRadius: theme.borderRadius.md,
-          fontSize: theme.typography.fontSize.sm,
-          color: colors.gray[500],
-          fontWeight: theme.typography.fontWeight.medium,
-        }}
-      >
+    <div className={`${isDark ? 'bg-[#161b22]' : 'bg-[#ffffff]'} p-12 rounded-xl shadow-lg border ${isDark ? 'border-[#30363d]' : 'border-[#d0d7de]'} max-w-[800px] mx-auto`}>
+      <div className={`mb-6 p-2 rounded-md text-sm font-medium ${isDark ? 'bg-[#161b22] text-[#6e7681]' : 'bg-[#f6f8fa] text-[#8c959f]'}`}>
         Difficulty: {question.difficulty}
       </div>
 
-      <h2
-        style={{
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.semibold,
-          marginBottom: theme.spacing.xl,
-          color: colors.text,
-        }}
-      >
+      <h2 className={`text-2xl font-semibold mb-8 ${isDark ? 'text-[#c9d1d9]' : 'text-[#24292f]'}`}>
         {question.text}
       </h2>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.md }}>
+      <div className="flex flex-col gap-4">
         {question.options.map((option, index) => {
           const isSelected = selectedAnswer === option
           return (
             <button
               key={index}
               onClick={() => onAnswerSelect(option)}
-              style={{
-                padding: theme.spacing.lg,
-                border: `2px solid ${isSelected ? colors.primary : colors.border}`,
-                borderRadius: theme.borderRadius.md,
-                backgroundColor: isSelected ? colors.gray[50] : colors.cardBg,
-                cursor: 'pointer',
-                textAlign: 'left',
-                fontSize: theme.typography.fontSize.base,
-                color: colors.text,
-                transition: `all ${theme.transitions.normal}`,
-                fontWeight: isSelected
-                  ? theme.typography.fontWeight.medium
-                  : theme.typography.fontWeight.normal,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.borderColor = colors.gray[400]
-                  e.currentTarget.style.backgroundColor = colors.gray[50]
+              className={`
+                px-6 py-4 rounded-md min-h-[56px] text-left text-base
+                flex items-center justify-between relative
+                transition-all duration-150
+                ${isSelected
+                  ? isDark
+                    ? 'bg-[#21262d] border border-[#ffffff] text-[#c9d1d9] font-semibold'
+                    : 'bg-[#f6f8fa] border border-[#24292f] text-[#24292f] font-semibold'
+                  : isDark
+                    ? 'bg-[#161b22] border border-[#30363d] text-[#c9d1d9] font-normal hover:bg-[#21262d] hover:border-[#484f58]'
+                    : 'bg-[#ffffff] border border-[#d0d7de] text-[#24292f] font-normal hover:bg-[#f6f8fa] hover:border-[#afb8c1]'
                 }
-              }}
-              onMouseLeave={(e) => {
-                if (!isSelected) {
-                  e.currentTarget.style.borderColor = colors.border
-                  e.currentTarget.style.backgroundColor = colors.cardBg
-                }
-              }}
+              `}
             >
-              <span>{String.fromCharCode(65 + index)}. {option}</span>
-              {isSelected && (
-                <span
-                  style={{
-                    fontSize: theme.typography.fontSize.lg,
-                    color: colors.primary,
-                    fontWeight: theme.typography.fontWeight.bold,
-                  }}
-                >
-                  ✓
+              <span className="leading-6">
+                <span className={`font-semibold mr-2 ${isDark ? 'text-[#6e7681]' : 'text-[#8c959f]'}`}>
+                  {String.fromCharCode(65 + index)}.
                 </span>
+                {option}
+              </span>
+              {isSelected && (
+                <Check size={20} className={isDark ? 'text-[#c9d1d9]' : 'text-[#24292f]'} strokeWidth={3} />
               )}
             </button>
           )
         })}
       </div>
 
-      <div
-        style={{
-          marginTop: theme.spacing.xl,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: theme.spacing.sm,
-        }}
-      >
+      <div className={`mt-12 flex flex-col items-stretch gap-2 pt-8 border-t ${isDark ? 'border-[#21262d]' : 'border-[#d0d7de]'}`}>
         {!selectedAnswer && (
-          <span
-            style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: colors.gray[500],
-              fontStyle: 'italic',
-            }}
-          >
+          <span className={`text-sm italic text-center mb-1 ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
             Please select an option to continue
           </span>
         )}
-        {isLastQuestion ? (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onFinish}
-          >
-            Finish Quiz
-          </Button>
-        ) : (
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={onNext}
-            disabled={!selectedAnswer}
-          >
-            Next Question
-          </Button>
-        )}
+        <div className="flex justify-end">
+          {isLastQuestion ? (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onFinish}
+            >
+              Finish Quiz
+            </Button>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onNext}
+              disabled={!selectedAnswer}
+            >
+              Next Question <ArrowRight size={18} className="ml-1 text-current" />
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

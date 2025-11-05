@@ -1,51 +1,36 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { theme, getThemeColors } from '../../styles/theme'
+import { Sun, Moon } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 
 export const ThemeToggle: React.FC = () => {
   const { isDark, toggleTheme } = useTheme()
-  const colors = getThemeColors(isDark)
 
   return (
     <motion.button
       onClick={toggleTheme}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      style={{
-        position: 'fixed',
-        top: theme.spacing.md,
-        right: theme.spacing.md,
-        zIndex: 1001,
-        width: '56px',
-        height: '56px',
-        borderRadius: '50%',
-        background: colors.cardBg,
-        border: `2px solid ${colors.border}`,
-        boxShadow: theme.shadows.lg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        fontSize: '24px',
-        color: colors.text,
-        transition: `all ${theme.transitions.normal}`,
-      }}
+      className={`
+        fixed top-4 right-4 z-[1001]
+        w-14 h-14 rounded-full
+        flex items-center justify-center
+        cursor-pointer transition-all duration-300
+        ${isDark 
+          ? 'bg-[#161b22] border-2 border-[#30363d] text-[#c9d1d9] shadow-lg hover:bg-[#1c2128] hover:shadow-xl' 
+          : 'bg-[#f6f8fa] border-2 border-[#d0d7de] text-[#24292f] shadow-lg hover:bg-[#f0f3f6] hover:shadow-xl'
+        }
+      `}
       onMouseEnter={(e) => {
-        e.currentTarget.style.background = colors.gray[100]
-        e.currentTarget.style.boxShadow = theme.shadows.xl
         e.currentTarget.style.transform = 'rotate(180deg)'
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = colors.cardBg
-        e.currentTarget.style.boxShadow = theme.shadows.lg
         e.currentTarget.style.transform = 'rotate(0deg)'
       }}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
     >
-      {isDark ? '☀️' : '🌙'}
+      {isDark ? <Sun size={24} /> : <Moon size={24} />}
     </motion.button>
   )
 }
-

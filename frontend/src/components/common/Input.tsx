@@ -1,5 +1,4 @@
 import React from 'react'
-import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
@@ -17,70 +16,47 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
 
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: theme.spacing.md,
-    fontSize: theme.typography.fontSize.base,
-    border: `1px solid ${error ? colors.error : colors.border}`,
-    borderRadius: theme.borderRadius.md,
-    background: colors.cardBg,
-    color: colors.text,
-    transition: `all ${theme.transitions.normal}`,
-    outline: 'none',
-    boxShadow: theme.shadows.sm,
-  }
-
-  if (error) {
-    inputStyle.borderColor = colors.error
-  }
-
   return (
-    <div style={{ marginBottom: theme.spacing.md }}>
+    <div className="mb-4">
       {label && (
         <label
           htmlFor={inputId}
-          style={{
-            display: 'block',
-            marginBottom: theme.spacing.sm,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: colors.text,
-          }}
+          className={`block mb-2 text-sm font-medium ${isDark ? 'text-[#c9d1d9]' : 'text-[#24292f]'}`}
         >
           {label}
-          {props.required && <span style={{ color: colors.error }}> *</span>}
+          {props.required && (
+            <span className={isDark ? 'text-[#f85149]' : 'text-[#cf222e]'}> *</span>
+          )}
         </label>
       )}
       <input
         id={inputId}
-        style={inputStyle}
-        className={className}
+        className={`
+          w-full px-4 py-2 text-base rounded-md border transition-all duration-300
+          outline-none focus:ring-2 focus:ring-offset-0
+          ${error
+            ? isDark
+              ? 'border-[#f85149] focus:ring-[#f85149] focus:border-[#f85149]'
+              : 'border-[#cf222e] focus:ring-[#cf222e] focus:border-[#cf222e]'
+            : isDark
+              ? 'border-[#30363d] bg-[#0d1117] text-[#c9d1d9] focus:border-[#58a6ff] focus:ring-[#58a6ff]'
+              : 'border-[#d0d7de] bg-[#ffffff] text-[#24292f] focus:border-[#0969da] focus:ring-[#0969da]'
+          }
+          ${className}
+        `}
         aria-invalid={error ? 'true' : 'false'}
         aria-describedby={
           error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
         }
-        onFocus={(e) => {
-          e.currentTarget.style.borderColor = colors.primary
-          e.currentTarget.style.boxShadow = theme.shadows.md
-        }}
-        onBlur={(e) => {
-          e.currentTarget.style.borderColor = error ? colors.error : colors.border
-          e.currentTarget.style.boxShadow = theme.shadows.sm
-        }}
         {...props}
       />
       {error && (
         <div
           id={`${inputId}-error`}
           role="alert"
-          style={{
-            marginTop: theme.spacing.xs,
-            fontSize: theme.typography.fontSize.sm,
-            color: theme.colors.error,
-          }}
+          className={`mt-1 text-sm ${isDark ? 'text-[#f85149]' : 'text-[#cf222e]'}`}
         >
           {error}
         </div>
@@ -88,11 +64,7 @@ export const Input: React.FC<InputProps> = ({
       {helperText && !error && (
         <div
           id={`${inputId}-helper`}
-          style={{
-            marginTop: theme.spacing.xs,
-            fontSize: theme.typography.fontSize.sm,
-            color: colors.gray[500],
-          }}
+          className={`mt-1 text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}
         >
           {helperText}
         </div>

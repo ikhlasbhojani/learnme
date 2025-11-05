@@ -1,6 +1,7 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import { BookOpen, Plus, FileText, Moon, Sun, LogOut, Key, Sparkles, X, Menu, ChevronDown } from 'lucide-react'
 import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
 
@@ -9,10 +10,10 @@ interface NavbarProps {
   onLogout?: () => void
 }
 
-const navItems = [
-  { path: '/home', label: 'Home', icon: '📚' },
-  { path: '/quiz-config', label: 'New Quiz', icon: '➕' },
-  { path: '/quiz-history', label: 'Assessment History', icon: '📋' },
+const getNavItems = (colors: ReturnType<typeof getThemeColors>) => [
+  { path: '/home', label: 'Home', icon: <BookOpen size={16} color={colors.text} /> },
+  { path: '/quiz-config', label: 'New Quiz', icon: <Plus size={16} color={colors.text} /> },
+  { path: '/quiz-history', label: 'Assessment History', icon: <FileText size={16} color={colors.text} /> },
 ]
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
@@ -109,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             e.currentTarget.style.background = 'transparent'
           }}
         >
-          <span style={{ fontSize: '20px' }}>📖</span>
+          <BookOpen size={20} color={colors.text} />
           <span>LearnMe</span>
         </Link>
 
@@ -138,7 +139,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             }}
             aria-label="Toggle menu"
           >
-            {isMobileMenuOpen ? '✕' : '☰'}
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         )}
 
@@ -153,7 +154,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           >
           {user ? (
             <>
-              {navItems.map((item) => {
+              {getNavItems(colors).map((item) => {
                 const active = isActive(item.path)
                 return (
                   <Link
@@ -186,7 +187,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                       }
                     }}
                   >
-                    <span style={{ fontSize: '16px', opacity: active ? 1 : 0.7 }}>
+                    <span style={{ opacity: active ? 1 : 0.7, display: 'flex', alignItems: 'center' }}>
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
@@ -222,23 +223,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           >
             <button
               onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-                borderRadius: theme.borderRadius.md,
-                background: colors.gray[100],
-                border: `1px solid ${colors.border}`,
-                cursor: 'pointer',
-                transition: `all ${theme.transitions.normal}`,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = colors.gray[200]
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = colors.gray[100]
-              }}
+              className={`
+                flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-all duration-300
+                ${isDark
+                  ? 'bg-[#1c2128] border border-[#30363d] hover:bg-[#21262d]'
+                  : 'bg-[#f0f3f6] border border-[#d0d7de] hover:bg-[#e7edf3]'
+                }
+              `}
             >
               <div
                 style={{
@@ -269,9 +260,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               >
                 {user.email}
               </span>
-              <span style={{ fontSize: '12px', color: colors.gray[500] }}>
-                ▼
-              </span>
+              <ChevronDown size={12} color={colors.gray[500]} />
             </button>
 
             {/* Dropdown Menu */}
@@ -359,32 +348,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                       console.error('Failed to toggle theme:', err)
                     }
                   }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    padding: theme.spacing.md,
-                    borderRadius: theme.borderRadius.md,
-                    background: 'transparent',
-                    border: 'none',
-                    color: colors.text,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    transition: `all ${theme.transitions.normal}`,
-                    fontSize: theme.typography.fontSize.sm,
-                    textAlign: 'left',
-                    width: '100%',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = colors.gray[50]
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
+                  className={`
+                    flex items-center gap-2 p-4 rounded-md w-full text-left text-sm font-medium cursor-pointer transition-all duration-300
+                    bg-transparent border-none text-[var(--color-text)]
+                    ${isDark ? 'hover:bg-[#30363d]' : 'hover:bg-[#f6f8fa]'}
+                  `}
                 >
-                  <span style={{ fontSize: '18px' }}>
-                    {isDark ? '☀️' : '🌙'}
-                  </span>
+                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
                   <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
                 </button>
 
@@ -403,30 +373,13 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                     onLogout?.()
                     setIsUserDropdownOpen(false)
                   }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    padding: theme.spacing.md,
-                    borderRadius: theme.borderRadius.md,
-                    background: 'transparent',
-                    border: 'none',
-                    color: colors.error,
-                    fontWeight: theme.typography.fontWeight.medium,
-                    cursor: 'pointer',
-                    transition: `all ${theme.transitions.normal}`,
-                    fontSize: theme.typography.fontSize.sm,
-                    textAlign: 'left',
-                    width: '100%',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = colors.error + '10'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                  }}
+                  className={`
+                    flex items-center gap-2 p-4 rounded-md w-full text-left text-sm font-medium cursor-pointer transition-all duration-300
+                    bg-transparent border-none
+                    ${isDark ? 'text-[#f85149] hover:bg-[rgba(248,81,73,0.1)]' : 'text-[#cf222e] hover:bg-[rgba(207,34,46,0.1)]'}
+                  `}
                 >
-                  <span style={{ fontSize: '18px' }}>🚪</span>
+                  <LogOut size={18} className={isDark ? 'text-[#f85149]' : 'text-[#cf222e]'} />
                   <span>Logout</span>
                 </button>
               </motion.div>
@@ -471,7 +424,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 }
               }}
             >
-              <span style={{ fontSize: '16px' }}>🔑</span>
+              <Key size={16} color={colors.text} />
               <span>Login</span>
             </Link>
             <Link
@@ -496,7 +449,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                 e.currentTarget.style.filter = 'brightness(1)'
               }}
             >
-              <span style={{ fontSize: '16px' }}>✨</span>
+              <Sparkles size={16} color={colors.secondary} />
               <span>Sign Up</span>
             </Link>
           </div>
@@ -519,7 +472,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
         >
           {user ? (
             <>
-              {navItems.map((item) => {
+              {getNavItems(colors).map((item) => {
                 const active = isActive(item.path)
                 return (
                   <Link
@@ -539,7 +492,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                         : theme.typography.fontWeight.medium,
                     }}
                   >
-                    <span style={{ fontSize: '18px' }}>{item.icon}</span>
+                    <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
                     <span>{item.label}</span>
                   </Link>
                 )
@@ -560,7 +513,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   fontWeight: theme.typography.fontWeight.medium,
                 }}
               >
-                <span style={{ fontSize: '18px' }}>🔑</span>
+                <Key size={18} color={colors.text} />
                 <span>Login</span>
               </Link>
               <Link
@@ -577,7 +530,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   fontWeight: theme.typography.fontWeight.semibold,
                 }}
               >
-                <span style={{ fontSize: '18px' }}>✨</span>
+                <Sparkles size={18} color={colors.secondary} />
                 <span>Sign Up</span>
               </Link>
             </>

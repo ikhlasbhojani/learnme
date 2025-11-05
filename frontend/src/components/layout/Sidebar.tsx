@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Home, FileEdit, BarChart3, LogIn, Sparkles, LogOut, ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../hooks/useTheme'
 
@@ -12,14 +13,14 @@ export interface SidebarProps {
 interface NavItem {
   path: string
   label: string
-  icon: string
+  icon: React.ReactNode
   requiresAuth?: boolean
 }
 
-const navItems: NavItem[] = [
-  { path: '/home', label: 'Home', icon: '🏠', requiresAuth: true },
-  { path: '/quiz-config', label: 'New Quiz', icon: '📝', requiresAuth: true },
-  { path: '/quiz-history', label: 'Assessment History', icon: '📊', requiresAuth: true },
+const getNavItems = (colors: ReturnType<typeof getThemeColors>) => [
+  { path: '/home', label: 'Home', icon: <Home size={20} color={colors.text} />, requiresAuth: true },
+  { path: '/quiz-config', label: 'New Quiz', icon: <FileEdit size={20} color={colors.text} />, requiresAuth: true },
+  { path: '/quiz-history', label: 'Assessment History', icon: <BarChart3 size={20} color={colors.text} />, requiresAuth: true },
 ]
 
 export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
@@ -137,63 +138,54 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
             minHeight: '70px',
           }}
         >
-          {isOpen ? (
-            <Link
-              to="/"
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: colors.text,
-                textDecoration: 'none',
-                transition: `transform ${theme.transitions.normal}`,
-              }}
+            {isOpen ? (
+              <Link
+                to="/"
+                style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: colors.text,
+                  textDecoration: 'none',
+                  transition: `transform ${theme.transitions.normal}`,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)'
+                }}
+              >
+                LearnMe
+              </Link>
+            ) : (
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: colors.text,
+                }}
+              >
+                L
+              </div>
+            )}
+            <button
+              onClick={toggleSidebar}
+              className={`
+                w-9 h-9 rounded-md flex items-center justify-center cursor-pointer transition-all duration-300
+                ${isDark
+                  ? 'bg-[#1c2128] border border-[#30363d] text-[#c9d1d9] hover:bg-[#21262d]'
+                  : 'bg-[#f0f3f6] border border-[#d0d7de] text-[#24292f] hover:bg-[#e7edf3]'
+                }
+              `}
               onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)'
+                e.currentTarget.style.transform = 'rotate(180deg)'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)'
+                e.currentTarget.style.transform = 'rotate(0deg)'
               }}
             >
-              LearnMe
-            </Link>
-          ) : (
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: colors.text,
-              }}
-            >
-              L
-            </div>
-          )}
-          <button
-            onClick={toggleSidebar}
-            style={{
-            background: colors.gray[100],
-            border: `1px solid ${colors.border}`,
-            borderRadius: theme.borderRadius.md,
-            width: '36px',
-            height: '36px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            fontSize: '18px',
-            color: colors.text,
-              transition: `all ${theme.transitions.normal}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.gray[200]
-              e.currentTarget.style.transform = 'rotate(180deg)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = colors.gray[100]
-              e.currentTarget.style.transform = 'rotate(0deg)'
-            }}
-          >
-            {isOpen ? '←' : '→'}
-          </button>
+              {isOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+            </button>
         </div>
 
         {/* Navigation */}
@@ -209,7 +201,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
         >
           {user ? (
             <>
-              {navItems.map((item) => {
+              {getNavItems(colors).map((item) => {
                 const active = isActive(item.path)
                 return (
                   <Link
@@ -248,7 +240,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
                       }
                     }}
                   >
-                    <span style={{ fontSize: '20px', minWidth: '24px', textAlign: 'center' }}>
+                    <span style={{ minWidth: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {item.icon}
                     </span>
                     <AnimatePresence>
@@ -315,7 +307,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
                   }
                 }}
               >
-                <span style={{ fontSize: '20px', minWidth: '24px', textAlign: 'center' }}>🔐</span>
+                <span style={{ minWidth: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LogIn size={20} color={colors.text} />
+                </span>
                 <AnimatePresence>
                   {isOpen && (
                     <motion.span
@@ -352,7 +346,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
                   e.currentTarget.style.boxShadow = theme.shadows.md
                 }}
               >
-                <span style={{ fontSize: '20px', minWidth: '24px', textAlign: 'center' }}>✨</span>
+                <span style={{ minWidth: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Sparkles size={20} color={colors.secondary} />
+                </span>
                 <AnimatePresence>
                   {isOpen && (
                     <motion.span
@@ -459,7 +455,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
                   e.currentTarget.style.transform = 'translateY(0)'
                 }}
               >
-                <span style={{ fontSize: '18px', minWidth: '24px', textAlign: 'center' }}>🚪</span>
+                <span style={{ minWidth: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <LogOut size={18} color={colors.text} />
+                </span>
                 <AnimatePresence>
                   {isOpen && (
                     <motion.span

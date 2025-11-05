@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { theme, getThemeColors } from '../../styles/theme'
+import { Menu } from 'lucide-react'
 import { useTheme } from '../../hooks/useTheme'
 
 interface MobileMenuButtonProps {
@@ -9,41 +9,24 @@ interface MobileMenuButtonProps {
 
 export const MobileMenuButton: React.FC<MobileMenuButtonProps> = ({ onClick }) => {
   const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   
   return (
     <motion.button
       onClick={onClick}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
-      style={{
-        position: 'fixed',
-        top: theme.spacing.md,
-        left: theme.spacing.md,
-        zIndex: 1001,
-        width: '48px',
-        height: '48px',
-        borderRadius: theme.borderRadius.lg,
-        background: colors.cardBg,
-        border: `1px solid ${colors.border}`,
-        boxShadow: theme.shadows.lg,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        fontSize: '24px',
-        color: colors.text,
-        transition: `all ${theme.transitions.normal}`,
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.background = colors.gray[100]
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.background = colors.cardBg
-      }}
+      className={`
+        fixed top-4 left-4 z-[1001]
+        w-12 h-12 rounded-lg
+        flex items-center justify-center
+        cursor-pointer transition-all duration-300
+        ${isDark
+          ? 'bg-[#161b22] border border-[#30363d] text-[#c9d1d9] shadow-lg hover:bg-[#1c2128]'
+          : 'bg-[#f6f8fa] border border-[#d0d7de] text-[#24292f] shadow-lg hover:bg-[#f0f3f6]'
+        }
+      `}
     >
-      ☰
+      <Menu size={24} />
     </motion.button>
   )
 }
-

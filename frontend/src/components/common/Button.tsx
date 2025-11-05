@@ -1,6 +1,5 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,101 +19,52 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   
-  const baseStyles = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: theme.typography.fontWeight.medium,
-    borderRadius: theme.borderRadius.lg,
-    transition: `all ${theme.transitions.normal} ease-in-out`,
-    cursor: disabled || isLoading ? 'not-allowed' : 'pointer',
-    opacity: disabled || isLoading ? 0.6 : 1,
+  // Base classes - GitHub-inspired sleek design
+  const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold rounded-md transition-all duration-150 ease-in-out whitespace-nowrap select-none outline-none relative font-sans border'
+  
+  // Variant classes - Perfect GitHub button styles with proper text colors for light and dark theme
+  const variantClasses = {
+    primary: isDark 
+      ? 'bg-[#21262d] text-white border-[#30363d] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-[#30363d] hover:border-[#484f58] hover:text-white hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.08)] active:bg-[#161b22] active:border-[#21262d] active:text-white active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]'
+      : 'bg-[#24292f] text-white border-[#24292f] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-[#161b22] hover:border-[#161b22] hover:text-white hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] active:bg-[#0d1117] active:border-[#0d1117] active:text-white active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]',
+    secondary: isDark
+      ? 'bg-[#161b22] text-[#c9d1d9] border-[#30363d] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:bg-[#21262d] hover:border-[#484f58] hover:text-[#c9d1d9] hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] active:bg-[#161b22] active:border-[#161b22] active:text-[#c9d1d9] active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]'
+      : 'bg-[#ffffff] text-[#24292f] border-[#d1d9de] shadow-[0_1px_0_0_rgba(27,31,36,0.04),inset_0_1px_0_0_rgba(0,0,0,0.02)] hover:bg-[#f6f8fa] hover:border-[#d0d7de] hover:text-[#24292f] hover:shadow-[0_1px_0_0_rgba(27,31,36,0.04),inset_0_1px_0_0_rgba(0,0,0,0.02)] active:bg-[#f3f4f6] active:border-[#d0d7de] active:text-[#24292f] active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)]',
+    outline: isDark
+      ? 'bg-transparent border-[#30363d] text-[#c9d1d9] shadow-none hover:bg-[#21262d] hover:border-[#484f58] hover:text-[#c9d1d9] active:bg-[#161b22] active:border-[#30363d] active:text-[#c9d1d9]'
+      : 'bg-transparent border-[#d1d9de] text-[#24292f] shadow-none hover:bg-[#f6f8fa] hover:border-[#d0d7de] hover:text-[#24292f] active:bg-[#f3f4f6] active:border-[#d1d9de] active:text-[#24292f]',
+    ghost: isDark
+      ? 'bg-transparent border-transparent text-[#c9d1d9] shadow-none hover:bg-[#21262d] hover:text-[#c9d1d9] active:bg-[#161b22] active:text-[#c9d1d9]'
+      : 'bg-transparent border-transparent text-[#24292f] shadow-none hover:bg-[#f6f8fa] hover:text-[#24292f] active:bg-[#f3f4f6] active:text-[#24292f]',
   }
-
-  const variantStyles = {
-    primary: {
-      background: colors.primary,
-      color: colors.secondary,
-      border: `1px solid ${colors.primary}`,
-      boxShadow: theme.shadows.md,
-    },
-    secondary: {
-      background: colors.cardBg,
-      color: colors.text,
-      border: `1px solid ${colors.border}`,
-      boxShadow: theme.shadows.md,
-    },
-    outline: {
-      background: 'transparent',
-      border: `2px solid ${colors.primary}`,
-      color: colors.text,
-    },
-    ghost: {
-      background: 'transparent',
-      color: colors.text,
-      border: 'none',
-    },
+  
+  // Size classes - Perfect GitHub button sizes
+  const sizeClasses = {
+    sm: 'px-3 py-1.5 text-xs min-h-[28px] leading-4',
+    md: 'px-4 py-2 text-sm min-h-[32px] leading-5',
+    lg: 'px-6 py-3 text-base min-h-[44px] leading-6',
   }
-
-  const sizeStyles = {
-    sm: {
-      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-      fontSize: theme.typography.fontSize.sm,
-    },
-    md: {
-      padding: `${theme.spacing.md} ${theme.spacing.lg}`,
-      fontSize: theme.typography.fontSize.base,
-    },
-    lg: {
-      padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-      fontSize: theme.typography.fontSize.lg,
-    },
-  }
-
-  const buttonStyle: React.CSSProperties = {
-    ...baseStyles,
-    ...variantStyles[variant],
-    ...sizeStyles[size],
-    ...props.style,
-  }
-
+  
+  // Disabled/loading classes - Ensure text color is maintained when disabled
+  const disabledClasses = (disabled || isLoading) 
+    ? 'opacity-50 cursor-not-allowed' 
+    : 'cursor-pointer'
+  
+  const buttonClasses = `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`
+  
   return (
     <motion.button
-      whileHover={
-        !disabled && !isLoading
-          ? {
-              scale: 1.05,
-              y: -2,
-              boxShadow: theme.shadows.lg,
-            }
-          : {}
-      }
-      whileTap={!disabled && !isLoading ? { scale: 0.95 } : {}}
-      style={buttonStyle}
+      whileHover={!disabled && !isLoading ? { scale: 1.005 } : {}}
+      whileTap={!disabled && !isLoading ? { scale: 0.995 } : {}}
+      className={buttonClasses}
       disabled={disabled || isLoading}
-      className={className}
-      onMouseEnter={(e) => {
-        if (!disabled && !isLoading) {
-          if (variant === 'primary' || variant === 'secondary') {
-            e.currentTarget.style.filter = 'brightness(1.1)'
-          }
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!disabled && !isLoading) {
-          if (variant === 'primary' || variant === 'secondary') {
-            e.currentTarget.style.filter = 'brightness(1)'
-          }
-        }
-      }}
       {...props}
     >
       {isLoading ? (
-        <>
-          <span style={{ marginRight: theme.spacing.sm }}>Loading...</span>
-        </>
+        <span className="flex items-center gap-1">
+          <span>Loading...</span>
+        </span>
       ) : (
         children
       )}

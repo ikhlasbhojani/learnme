@@ -10,6 +10,7 @@ interface QuizResponse {
   id: string
   userId: string
   contentInputId: string | null
+  name: string | null
   configuration: QuizConfiguration
   questions: Question[]
   answers: Record<string, string>
@@ -35,6 +36,7 @@ function mapQuiz(response: QuizResponse): QuizInstance {
     id: response.id,
     userId: response.userId,
     contentInputId: response.contentInputId,
+    name: response.name ?? null,
     configuration: response.configuration,
     questions: response.questions,
     answers: response.answers ?? {},

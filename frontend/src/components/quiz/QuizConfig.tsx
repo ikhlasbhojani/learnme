@@ -3,7 +3,6 @@ import { QuizConfiguration } from '../../types'
 import { Input } from '../common/Input'
 import { Button } from '../common/Button'
 import { validateQuizConfiguration } from '../../utils/validation'
-import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
 
 interface QuizConfigProps {
@@ -30,57 +29,31 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({
   loading = false,
 }) => {
   const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   const isFormValid = difficulty && numberOfQuestions && timeDuration && errors.length === 0
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '500px',
-        backgroundColor: colors.cardBg,
-        padding: theme.spacing['2xl'],
-        borderRadius: theme.borderRadius.xl,
-        boxShadow: theme.shadows.lg,
-        border: `1px solid ${colors.border}`,
-      }}
-    >
-      <h1
-        style={{
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          marginBottom: theme.spacing['2xl'],
-          textAlign: 'center',
-          color: colors.text,
-        }}
-      >
+    <div className={`w-full max-w-[500px] ${isDark ? 'bg-[#161b22]' : 'bg-[#ffffff]'} p-8 rounded-xl border ${isDark ? 'border-[#30363d]' : 'border-[#d0d7de]'} shadow-lg`}>
+      <h1 className={`text-3xl font-bold mb-8 text-center ${isDark ? 'text-[#c9d1d9]' : 'text-[#24292f]'}`}>
         Configure Your Quiz
       </h1>
 
-      <div style={{ marginBottom: theme.spacing.lg }}>
+      <div className="mb-6">
         <label
-          style={{
-            display: 'block',
-            marginBottom: theme.spacing.sm,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            color: colors.gray[500],
-          }}
+          className={`block mb-2 text-sm font-medium ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}
         >
           Difficulty Level
         </label>
         <select
           value={difficulty}
           onChange={(e) => onDifficultyChange(e.target.value as QuizConfiguration['difficulty'])}
-          style={{
-            width: '100%',
-            padding: theme.spacing.md,
-            fontSize: theme.typography.fontSize.base,
-            border: `1px solid ${colors.border}`,
-            borderRadius: theme.borderRadius.md,
-            backgroundColor: colors.cardBg,
-            color: colors.text,
-          }}
+          className={`
+            w-full px-4 py-2 text-base rounded-md border transition-all duration-300
+            outline-none focus:ring-2 focus:ring-offset-0
+            ${isDark
+              ? 'border-[#30363d] bg-[#0d1117] text-[#c9d1d9] focus:border-[#58a6ff] focus:ring-[#58a6ff]'
+              : 'border-[#d0d7de] bg-[#ffffff] text-[#24292f] focus:border-[#0969da] focus:ring-[#0969da]'
+            }
+          `}
         >
           <option value="Easy">Easy</option>
           <option value="Normal">Normal</option>
@@ -111,14 +84,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({
 
       {errors.length > 0 && (
         <div
-          style={{
-            marginBottom: theme.spacing.md,
-            padding: theme.spacing.md,
-            backgroundColor: colors.error + '20',
-            color: colors.error,
-            borderRadius: theme.borderRadius.md,
-            fontSize: theme.typography.fontSize.sm,
-          }}
+          className={`mb-4 p-4 rounded-md text-sm ${isDark ? 'bg-[#f85149]/20 text-[#f85149]' : 'bg-[#cf222e]/20 text-[#cf222e]'}`}
         >
           {errors.join(', ')}
         </div>
@@ -130,7 +96,7 @@ export const QuizConfig: React.FC<QuizConfigProps> = ({
         onClick={onStart}
         disabled={!isFormValid || loading}
         isLoading={loading}
-        style={{ width: '100%' }}
+        className="w-full"
       >
         Start Quiz
       </Button>

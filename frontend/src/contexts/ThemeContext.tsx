@@ -27,8 +27,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       if (stored && (stored === 'light' || stored === 'dark')) {
         // Apply immediately
         document.documentElement.setAttribute('data-theme', stored)
-        document.body.style.background = stored === 'dark' ? '#0a0a0a' : '#ffffff'
-        document.body.style.color = stored === 'dark' ? '#ffffff' : '#000000'
+        document.body.style.background = stored === 'dark' ? '#0d1117' : '#ffffff'
+        document.body.style.color = stored === 'dark' ? '#c9d1d9' : '#24292f'
         return stored
       }
     }
@@ -40,8 +40,8 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme)
       const isDark = theme === 'dark'
-      document.body.style.background = isDark ? '#0a0a0a' : '#ffffff'
-      document.body.style.color = isDark ? '#ffffff' : '#000000'
+      document.body.style.background = isDark ? '#0d1117' : '#ffffff'
+      document.body.style.color = isDark ? '#c9d1d9' : '#24292f'
     }
   }, [theme])
 

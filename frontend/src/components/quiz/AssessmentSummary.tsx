@@ -1,4 +1,5 @@
 import React from 'react'
+import { ArrowRight } from 'lucide-react'
 import { AssessmentResult } from '../../types'
 import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
@@ -145,14 +146,7 @@ export const AssessmentSummary: React.FC<AssessmentSummaryProps> = ({ result, qu
                 gap: theme.spacing.sm,
               }}
             >
-              <span
-                style={{
-                  color: colors.primary,
-                  fontWeight: theme.typography.fontWeight.bold,
-                }}
-              >
-                →
-              </span>
+              <ArrowRight size={16} color={colors.primary} style={{ flexShrink: 0 }} />
               <span>{suggestion}</span>
             </li>
           ))}
