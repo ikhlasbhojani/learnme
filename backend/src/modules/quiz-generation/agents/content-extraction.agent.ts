@@ -18,22 +18,26 @@ export class ContentExtractionAgent extends BaseAgent {
 
     try {
       let extractedContent = ''
+      let pageTitle: string | null = null
 
       if (url) {
-        extractedContent = await this.extractFromUrl(url)
+        const urlResult = await this.extractFromUrl(url)
+        extractedContent = urlResult.content
+        pageTitle = urlResult.title
       } else if (document) {
         extractedContent = this.extractFromDocument(document)
       } else {
         throw new Error('Either URL or document must be provided')
       }
 
-      // Use Gemini to clean and summarize the content
+      // Use AI provider to clean and summarize the content
       const cleanedContent = await this.cleanAndSummarize(extractedContent)
 
       return {
         output: {
           content: cleanedContent,
           source: url || 'document',
+          pageTitle: pageTitle || null,
           extractedAt: new Date().toISOString(),
         },
         metadata: {
@@ -48,7 +52,7 @@ export class ContentExtractionAgent extends BaseAgent {
     }
   }
 
-  private async extractFromUrl(url: string): Promise<string> {
+  private async extractFromUrl(url: string): Promise<{ content: string; title: string | null }> {
     try {
       const response = await axios.get(url, {
         timeout: 30000,
@@ -59,6 +63,20 @@ export class ContentExtractionAgent extends BaseAgent {
       })
 
       const $ = cheerio.load(response.data)
+
+      // Extract page title
+      let pageTitle: string | null = null
+      // Try multiple methods to get title
+      pageTitle = $('title').text().trim() || null
+      if (!pageTitle) {
+        pageTitle = $('meta[property="og:title"]').attr('content')?.trim() || null
+      }
+      if (!pageTitle) {
+        pageTitle = $('meta[name="title"]').attr('content')?.trim() || null
+      }
+      if (!pageTitle) {
+        pageTitle = $('h1').first().text().trim() || null
+      }
 
       // Remove script and style elements
       $('script, style, nav, header, footer, aside, .ad, .advertisement').remove()
@@ -89,10 +107,15 @@ export class ContentExtractionAgent extends BaseAgent {
       }
 
       // Clean up whitespace
-      return text
+      const cleanedText = text
         .replace(/\s+/g, ' ')
         .replace(/\n\s*\n/g, '\n')
         .trim()
+
+      return {
+        content: cleanedText,
+        title: pageTitle || null,
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
         throw new Error(`Failed to fetch URL: ${error.message}`)
@@ -117,9 +140,7 @@ Content to process:
 ${content.substring(0, 50000)}${content.length > 50000 ? '... (truncated)' : ''}`
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const response = await result.response
-      return response.text()
+      return await this.aiProvider.generateText(prompt)
     } catch (error) {
       // If cleaning fails, return original content
       console.warn('Content cleaning failed, using original content:', error)

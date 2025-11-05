@@ -1,5 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { appEnv } from '../../../config/env'
+import { AIProvider } from '../../../services/ai/ai-provider.interface'
+import { createAIProvider } from '../../../services/ai/ai-provider.factory'
+import { getAIConfig } from '../../setup/setup.service'
 
 export interface AgentContext {
   input: any
@@ -19,7 +20,7 @@ export interface AgentTool {
 }
 
 export abstract class BaseAgent {
-  protected model: any
+  protected aiProvider: AIProvider
   protected tools: AgentTool[] = []
   protected name: string
   protected instructions: string
@@ -27,12 +28,12 @@ export abstract class BaseAgent {
   constructor(name: string, instructions: string) {
     this.name = name
     this.instructions = instructions
-    this.initializeModel()
+    this.initializeAIProvider()
   }
 
-  protected initializeModel() {
-    const genAI = new GoogleGenerativeAI(appEnv.geminiApiKey)
-    this.model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+  protected initializeAIProvider() {
+    const config = getAIConfig()
+    this.aiProvider = createAIProvider(config)
   }
 
   addTool(tool: AgentTool) {
@@ -42,9 +43,7 @@ export abstract class BaseAgent {
   protected async callModel(prompt: string, context: AgentContext): Promise<string> {
     try {
       const fullPrompt = this.buildPrompt(prompt, context)
-      const result = await this.model.generateContent(fullPrompt)
-      const response = await result.response
-      return response.text()
+      return await this.aiProvider.generateText(fullPrompt)
     } catch (error) {
       throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

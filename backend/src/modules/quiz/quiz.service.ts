@@ -1,4 +1,3 @@
-import { Types, isValidObjectId } from 'mongoose'
 import Quiz, {
   type IQuizDocument,
   type QuizPauseReason,
@@ -29,33 +28,28 @@ function ensureQuizOwnership(quiz: IQuizDocument | null, userId: string): IQuizD
     throw new AppError('Quiz not found', 404)
   }
 
-  const quizUserId = typeof quiz.user === 'object' && quiz.user !== null 
-    ? quiz.user.toString() 
-    : String(quiz.user)
-  
-  if (quizUserId !== userId) {
+  if (quiz.userId !== userId) {
     throw new AppError('You are not allowed to access this quiz', 403)
   }
 
   return quiz
 }
 
-function ensureAnswersMap(quiz: IQuizDocument): Map<string, string> {
-  if (!(quiz.answers instanceof Map)) {
-    quiz.answers = new Map(Object.entries(quiz.answers)) as unknown as Map<string, string>
+function ensureAnswersObject(quiz: IQuizDocument): Record<string, string> {
+  if (!quiz.answers || typeof quiz.answers !== 'object') {
+    return {}
   }
-
-  return quiz.answers as Map<string, string>
+  return quiz.answers
 }
 
 function calculateScore(quiz: IQuizDocument) {
-  const answers = ensureAnswersMap(quiz)
+  const answers = ensureAnswersObject(quiz)
   let correctCount = 0
   let incorrectCount = 0
   let unansweredCount = 0
 
   quiz.questions.forEach((question) => {
-    const answer = answers.get(question.id)
+    const answer = answers[question.id]
     if (!answer) {
       unansweredCount += 1
     } else if (answer === question.correctAnswer) {
@@ -75,7 +69,7 @@ function buildAssessment(quiz: IQuizDocument): AssessmentResult {
   const { correctCount, incorrectCount, unansweredCount, score } = calculateScore(quiz)
 
   const difficultyStats: Record<string, { correct: number; total: number }> = {}
-  const answers = ensureAnswersMap(quiz)
+  const answers = ensureAnswersObject(quiz)
 
   quiz.questions.forEach((question) => {
     const diff = question.difficulty
@@ -83,7 +77,7 @@ function buildAssessment(quiz: IQuizDocument): AssessmentResult {
       difficultyStats[diff] = { correct: 0, total: 0 }
     }
     difficultyStats[diff].total += 1
-    if (answers.get(question.id) === question.correctAnswer) {
+    if (answers[question.id] === question.correctAnswer) {
       difficultyStats[diff].correct += 1
     }
   })
@@ -142,18 +136,40 @@ function ensureStatus(quiz: IQuizDocument, allowed: QuizStatus[]) {
   }
 }
 
+function generateDefaultQuizName(
+  difficulty: 'Easy' | 'Normal' | 'Hard' | 'Master',
+  numberOfQuestions: number
+): string {
+  const difficultyNames: Record<string, string> = {
+    Easy: 'Easy',
+    Normal: 'Normal',
+    Hard: 'Hard',
+    Master: 'Master',
+  }
+  
+  const difficultyName = difficultyNames[difficulty] || 'Normal'
+  return `${difficultyName} Difficulty Quiz - ${numberOfQuestions} Questions`
+}
+
 export async function createQuiz(
   userId: string,
   input: CreateQuizInput
 ): Promise<ReturnType<IQuizDocument['toJSON']>> {
   const questions = pickQuestions(input.configuration.difficulty, input.configuration.numberOfQuestions)
 
+  // Generate a default name based on difficulty and number of questions
+  const defaultName = generateDefaultQuizName(
+    input.configuration.difficulty,
+    input.configuration.numberOfQuestions
+  )
+
   const quiz = await Quiz.create({
-    user: new Types.ObjectId(userId),
-    contentInput: input.contentInputId ? new Types.ObjectId(input.contentInputId) : null,
+    userId,
+    contentInputId: input.contentInputId || null,
+    name: defaultName,
     configuration: input.configuration,
     questions,
-    answers: new Map(),
+    answers: {},
     status: 'pending',
   })
 
@@ -164,13 +180,14 @@ export async function startQuiz(userId: string, quizId: string) {
   const quiz = ensureQuizOwnership(await Quiz.findById(quizId), userId)
   ensureStatus(quiz, ['pending'])
 
-  quiz.status = 'in-progress'
-  quiz.startTime = new Date()
-  quiz.pauseReason = null
-  quiz.pausedAt = null
+  const updated = await Quiz.update(quizId, {
+    status: 'in-progress',
+    startTime: new Date(),
+    pauseReason: null,
+    pausedAt: null,
+  })
 
-  await quiz.save()
-  return quiz.toJSON()
+  return updated.toJSON()
 }
 
 export async function answerQuizQuestion(
@@ -186,12 +203,14 @@ export async function answerQuizQuestion(
     throw new AppError('Question not found in this quiz', 404)
   }
 
-  const answers = ensureAnswersMap(quiz)
-  answers.set(input.questionId, input.answer)
-  quiz.markModified('answers')
-  await quiz.save()
+  const answers = ensureAnswersObject(quiz)
+  answers[input.questionId] = input.answer
 
-  return quiz.toJSON()
+  const updated = await Quiz.update(quizId, {
+    answers,
+  })
+
+  return updated.toJSON()
 }
 
 export async function pauseQuiz(
@@ -206,12 +225,13 @@ export async function pauseQuiz(
     return quiz.toJSON()
   }
 
-  quiz.pauseReason = reason
-  quiz.pausedAt = new Date()
-  quiz.pauseCount = (quiz.pauseCount ?? 0) + 1
-  await quiz.save()
+  const updated = await Quiz.update(quizId, {
+    pauseReason: reason,
+    pausedAt: new Date(),
+    pauseCount: (quiz.pauseCount ?? 0) + 1,
+  })
 
-  return quiz.toJSON()
+  return updated.toJSON()
 }
 
 export async function resumeQuiz(userId: string, quizId: string) {
@@ -222,11 +242,12 @@ export async function resumeQuiz(userId: string, quizId: string) {
     throw new AppError('Quiz is not paused', 400)
   }
 
-  quiz.pauseReason = null
-  quiz.pausedAt = null
-  await quiz.save()
+  const updated = await Quiz.update(quizId, {
+    pauseReason: null,
+    pausedAt: null,
+  })
 
-  return quiz.toJSON()
+  return updated.toJSON()
 }
 
 export async function finishQuiz(userId: string, quizId: string) {
@@ -235,15 +256,15 @@ export async function finishQuiz(userId: string, quizId: string) {
 
   const { correctCount, incorrectCount, score } = calculateScore(quiz)
 
-  quiz.status = 'completed'
-  quiz.endTime = new Date()
-  quiz.correctCount = correctCount
-  quiz.incorrectCount = incorrectCount
-  quiz.score = score
-  quiz.pauseReason = null
-  quiz.pausedAt = null
-
-  await quiz.save()
+  const updated = await Quiz.update(quizId, {
+    status: 'completed',
+    endTime: new Date(),
+    correctCount,
+    incorrectCount,
+    score,
+    pauseReason: null,
+    pausedAt: null,
+  })
 
   // Trigger AI analysis asynchronously (don't wait for it)
   try {
@@ -256,7 +277,7 @@ export async function finishQuiz(userId: string, quizId: string) {
     console.error('Failed to load analysis service:', err)
   }
 
-  return quiz.toJSON()
+  return updated.toJSON()
 }
 
 export async function expireQuiz(userId: string, quizId: string) {
@@ -265,13 +286,13 @@ export async function expireQuiz(userId: string, quizId: string) {
 
   const { correctCount, incorrectCount, score } = calculateScore(quiz)
 
-  quiz.status = 'expired'
-  quiz.endTime = new Date()
-  quiz.correctCount = correctCount
-  quiz.incorrectCount = incorrectCount
-  quiz.score = score
-
-  await quiz.save()
+  const updated = await Quiz.update(quizId, {
+    status: 'expired',
+    endTime: new Date(),
+    correctCount,
+    incorrectCount,
+    score,
+  })
 
   // Trigger AI analysis asynchronously (don't wait for it)
   try {
@@ -284,43 +305,19 @@ export async function expireQuiz(userId: string, quizId: string) {
     console.error('Failed to load analysis service:', err)
   }
 
-  return quiz.toJSON()
+  return updated.toJSON()
 }
 
 export async function getQuizById(userId: string, quizId: string) {
   try {
-    // Try to find quiz - handle both ObjectId and UUID formats
-    let quiz = null
-    
-    // First, try as ObjectId (MongoDB default)
-    if (isValidObjectId(quizId)) {
-      quiz = await Quiz.findById(quizId)
-    }
-    
-    // If not found and it's a UUID format, return 404
-    if (!quiz) {
-      // UUID format check (8-4-4-4-12 pattern)
-      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (uuidPattern.test(quizId)) {
-        // This is a UUID that was generated client-side but never saved
-        // Return 404 since it doesn't exist in database
-        throw new AppError('Quiz not found', 404)
-      }
-      
-      // Try one more time as string query (in case schema was changed)
-      quiz = await Quiz.findOne({ _id: quizId } as any)
-    }
+    const quiz = await Quiz.findById(quizId)
     
     if (!quiz) {
       throw new AppError('Quiz not found', 404)
     }
     
     // Verify ownership
-    const quizUserId = typeof quiz.user === 'object' && quiz.user !== null 
-      ? quiz.user.toString() 
-      : String(quiz.user)
-    
-    if (quizUserId !== userId) {
+    if (quiz.userId !== userId) {
       throw new AppError('You are not allowed to access this quiz', 403)
     }
     
@@ -335,7 +332,7 @@ export async function getQuizById(userId: string, quizId: string) {
 }
 
 export async function listQuizzes(userId: string) {
-  const quizzes = await Quiz.find({ user: userId }).sort({ createdAt: -1 })
+  const quizzes = await Quiz.find({ userId })
   return quizzes.map((quiz) => quiz.toJSON())
 }
 

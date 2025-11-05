@@ -73,9 +73,7 @@ export class QuizGenerationAgent extends BaseAgent {
     const prompt = this.buildQuizGenerationPrompt(content, difficulty, count)
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const response = await result.response
-      const generatedText = response.text()
+      const generatedText = await this.aiProvider.generateText(prompt)
 
       // Parse the generated questions
       const questions = this.parseQuestions(generatedText, mappedDifficulty)
@@ -239,11 +237,10 @@ Generate the questions now:`
     Generate ${count} new, unique questions following the same format and difficulty level (${difficulty}).`
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const response = await result.response
+      const generatedText = await this.aiProvider.generateText(prompt)
       const mappedDifficulty: 'Easy' | 'Normal' | 'Hard' | 'Master' =
         difficulty === 'easy' ? 'Easy' : difficulty === 'medium' ? 'Normal' : 'Hard'
-      return this.parseQuestions(response.text(), mappedDifficulty)
+      return this.parseQuestions(generatedText, mappedDifficulty)
     } catch (error) {
       console.warn('Failed to generate additional questions:', error)
       return []

@@ -28,39 +28,86 @@ export class OrchestratorAgent extends BaseAgent {
     this.quizGenerationAgent = new QuizGenerationAgent()
   }
 
-  private async generateQuizName(content: string, source: string): Promise<string> {
+  private async generateQuizName(
+    content: string,
+    source: string,
+    pageTitle?: string | null
+  ): Promise<string> {
     try {
+      // Use more content for better name generation (first 2000 characters)
+      const contentPreview = content.substring(0, 2000)
+      const sourceInfo = pageTitle ? `Page Title: ${pageTitle}\nSource: ${source}` : `Source: ${source}`
+
       const prompt = `Based on the following content, generate a concise and descriptive quiz title (maximum 60 characters).
 The title should:
-1. Summarize the main topic or subject matter
-2. Be clear and informative
-3. Not include words like "Quiz" or "Test" - just the topic name
+1. Summarize the main topic or subject matter covered in the content
+2. Be clear, informative, and specific to the content
+3. Not include words like "Quiz", "Test", or "Assessment" - just the topic/subject name
+4. Use title case (capitalize important words)
+5. Be specific enough to distinguish this quiz from others
 
-Content source: ${source}
-Content preview: ${content.substring(0, 500)}...
+${sourceInfo}
 
-Generate only the title, nothing else.`
+Content preview:
+${contentPreview}${content.length > 2000 ? '...' : ''}
 
-      const result = await this.model.generateContent(prompt)
-      const response = result.response
-      const name = response.text().trim()
+Generate only the title, nothing else. Do not include quotes or any other text.`
+
+      const name = (await this.aiProvider.generateText(prompt)).trim()
 
       // Clean up the name - remove quotes, extra whitespace, and limit length
-      let cleanName = name.replace(/^["']|["']$/g, '').trim()
+      let cleanName = name
+        .replace(/^["']|["']$/g, '') // Remove surrounding quotes
+        .replace(/^Title:\s*/i, '') // Remove "Title:" prefix if present
+        .replace(/^Quiz\s*Title:\s*/i, '') // Remove "Quiz Title:" prefix if present
+        .trim()
+
+      // Limit to 60 characters
       if (cleanName.length > 60) {
-        cleanName = cleanName.substring(0, 57) + '...'
+        // Try to cut at word boundary
+        const truncated = cleanName.substring(0, 57)
+        const lastSpace = truncated.lastIndexOf(' ')
+        cleanName = lastSpace > 40 ? truncated.substring(0, lastSpace) + '...' : truncated + '...'
       }
 
-      return cleanName || 'Generated Quiz'
+      return cleanName || this.getFallbackName(source, pageTitle)
     } catch (error) {
       console.error('Failed to generate quiz name:', error)
-      // Fallback: extract a simple name from the source
-      try {
-        const url = new URL(source)
-        return url.pathname.split('/').pop()?.replace(/-/g, ' ') || 'Generated Quiz'
-      } catch {
-        return 'Generated Quiz'
+      return this.getFallbackName(source, pageTitle)
+    }
+  }
+
+  private getFallbackName(source: string, pageTitle?: string | null): string {
+    // Use page title if available
+    if (pageTitle) {
+      // Clean up page title (remove common suffixes like " | Site Name")
+      const cleaned = pageTitle.split('|')[0].split('-')[0].trim()
+      if (cleaned.length > 0 && cleaned.length <= 60) {
+        return cleaned
       }
+    }
+
+    // Try to extract name from URL
+    try {
+      const url = new URL(source)
+      const pathParts = url.pathname.split('/').filter((p) => p.length > 0)
+      if (pathParts.length > 0) {
+        const lastPart = pathParts[pathParts.length - 1]
+        const name = lastPart
+          .replace(/\.(html|htm|php|asp|aspx)$/i, '') // Remove file extensions
+          .replace(/-/g, ' ')
+          .replace(/_/g, ' ')
+          .split(' ')
+          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ')
+        return name || 'Generated Quiz'
+      }
+      // Use hostname as fallback
+      return url.hostname.replace('www.', '').split('.')[0].charAt(0).toUpperCase() + 
+             url.hostname.replace('www.', '').split('.')[0].slice(1) || 'Generated Quiz'
+    } catch {
+      // If source is not a URL, use a generic name
+      return 'Generated Quiz'
     }
   }
 
@@ -89,9 +136,14 @@ Generate only the title, nothing else.`
       })
 
       const extractedContent = extractionResult.output.content
+      const pageTitle = extractionResult.output.pageTitle || null
 
-      // Step 2: Generate quiz name based on content
-      const quizName = await this.generateQuizName(extractedContent, extractionResult.output.source)
+      // Step 2: Generate quiz name based on content and page title
+      const quizName = await this.generateQuizName(
+        extractedContent,
+        extractionResult.output.source,
+        pageTitle
+      )
 
       // Step 3: Generate quiz
       const quizResult = await this.quizGenerationAgent.run({

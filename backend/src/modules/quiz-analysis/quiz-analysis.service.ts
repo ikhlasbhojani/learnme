@@ -18,11 +18,7 @@ export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizA
   }
 
   // Verify ownership
-  const quizUserId = typeof quiz.user === 'object' && quiz.user !== null 
-    ? quiz.user.toString() 
-    : String(quiz.user)
-  
-  if (quizUserId !== userId) {
+  if (quiz.userId !== userId) {
     throw new AppError('You are not allowed to access this quiz', 403)
   }
 
@@ -30,9 +26,8 @@ export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizA
     throw new AppError('Quiz must be completed or expired before analysis', 400)
   }
 
-  // Convert answers Map to object
-  const answersMap = quiz.answers instanceof Map ? quiz.answers : new Map(Object.entries(quiz.answers || {}))
-  const answers = Object.fromEntries(answersMap)
+  // Answers are already an object in SQLite
+  const answers = quiz.answers || {}
 
   // Initialize analysis agent
   const analysisAgent = new QuizAnalysisAgent()
@@ -45,18 +40,19 @@ export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizA
     },
     metadata: {
       userId,
-      quizId: quiz._id.toString(),
+      quizId: quiz.id,
     },
   })
 
   const analysis = result.output as QuizAnalysisResult
 
   // Save analysis to quiz
-  quiz.analysis = {
-    ...analysis,
-    analyzedAt: new Date(),
-  }
-  await quiz.save()
+  await Quiz.update(quizId, {
+    analysis: {
+      ...analysis,
+      analyzedAt: new Date(),
+    },
+  })
 
   return analysis
 }

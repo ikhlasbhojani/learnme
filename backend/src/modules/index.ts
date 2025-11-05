@@ -3,9 +3,11 @@ import { authRoutes } from './auth'
 import { contentRoutes } from './content'
 import { quizRoutes } from './quiz'
 import { quizGenerationRoutes } from './quiz-generation'
+import { setupRoutes } from './setup'
 
 const router = Router()
 
+router.use('/setup', setupRoutes)
 router.use('/auth', authRoutes)
 router.use('/content-inputs', contentRoutes)
 router.use('/quizzes', quizRoutes)

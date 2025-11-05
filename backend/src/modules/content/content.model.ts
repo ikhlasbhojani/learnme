@@ -1,70 +1,167 @@
-import { Schema, model, type Document, type Model, Types } from 'mongoose'
+import { getDatabase } from '../../config/database'
+import { generateId } from '../../config/schema'
 
 export type ContentInputType = 'url' | 'file' | 'manual'
 
 export interface IContentInput {
-  user: Types.ObjectId
+  id: string
+  userId: string
   type: ContentInputType
   source: string
   content?: string | null
   timestamp?: Date
-}
-
-export interface IContentInputDocument extends IContentInput, Document {
   createdAt: Date
   updatedAt: Date
 }
 
-export type ContentInputModel = Model<IContentInputDocument>
+export interface IContentInputDocument extends IContentInput {
+  toJSON(): IContentInput & { id: string; contentInputId?: never }
+}
 
-const contentInputSchema = new Schema<IContentInputDocument>(
-  {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
+/**
+ * Convert database row to ContentInput object
+ */
+function rowToContentInput(row: any): IContentInputDocument {
+  return {
+    id: row.id,
+    userId: row.userId,
+    type: row.type as ContentInputType,
+    source: row.source,
+    content: row.content || null,
+    timestamp: row.timestamp ? new Date(row.timestamp) : undefined,
+    createdAt: new Date(row.createdAt),
+    updatedAt: new Date(row.updatedAt),
+    toJSON() {
+      return {
+        id: this.id,
+        userId: this.userId,
+        type: this.type,
+        source: this.source,
+        content: this.content,
+        timestamp: this.timestamp,
+        createdAt: this.createdAt,
+        updatedAt: this.updatedAt,
+      }
     },
-    type: {
-      type: String,
-      enum: ['url', 'file', 'manual'],
-      required: true,
-    },
-    source: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    content: {
-      type: String,
-      default: null,
-    },
-    timestamp: {
-      type: Date,
-      default: () => new Date(),
-    },
-  },
-  {
-    timestamps: true,
-    versionKey: false,
   }
-)
+}
 
-contentInputSchema.set('toJSON', {
-  virtuals: true,
-  transform: (_doc, ret) => {
-    ret.id = ret._id.toString()
-    ret.userId = ret.user?.toString()
-    delete ret._id
-    delete ret.user
-    return ret
+export const ContentInput = {
+  async find(query: { userId?: string; id?: string }): Promise<IContentInputDocument[]> {
+    const db = getDatabase()
+    let rows: any[]
+
+    if (query.userId) {
+      rows = db.prepare('SELECT * FROM content_inputs WHERE userId = ? ORDER BY createdAt DESC').all(query.userId)
+    } else if (query.id) {
+      const row = db.prepare('SELECT * FROM content_inputs WHERE id = ?').get(query.id)
+      rows = row ? [row] : []
+    } else {
+      rows = db.prepare('SELECT * FROM content_inputs ORDER BY createdAt DESC').all()
+    }
+
+    return rows.map(rowToContentInput)
   },
-})
 
-export const ContentInput: ContentInputModel = model<IContentInputDocument>(
-  'ContentInput',
-  contentInputSchema
-)
+  async findOne(query: { userId?: string; id?: string }): Promise<IContentInputDocument | null> {
+    const db = getDatabase()
+    let row: any
+
+    if (query.id && query.userId) {
+      row = db.prepare('SELECT * FROM content_inputs WHERE id = ? AND userId = ?').get(query.id, query.userId)
+    } else if (query.id) {
+      row = db.prepare('SELECT * FROM content_inputs WHERE id = ?').get(query.id)
+    } else {
+      return null
+    }
+
+    return row ? rowToContentInput(row) : null
+  },
+
+  async create(data: {
+    userId: string
+    type: ContentInputType
+    source: string
+    content?: string | null
+  }): Promise<IContentInputDocument> {
+    const db = getDatabase()
+    const id = generateId()
+    const now = new Date().toISOString()
+    const timestamp = new Date().toISOString()
+
+    db.prepare(`
+      INSERT INTO content_inputs (id, userId, type, source, content, timestamp, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id,
+      data.userId,
+      data.type,
+      data.source,
+      data.content || null,
+      timestamp,
+      now,
+      now
+    )
+
+    const contentInput = await ContentInput.findOne({ id })
+    if (!contentInput) {
+      throw new Error('Failed to create content input')
+    }
+
+    return contentInput
+  },
+
+  async update(id: string, userId: string, updates: {
+    source?: string
+    content?: string | null
+  }): Promise<IContentInputDocument> {
+    const db = getDatabase()
+    const now = new Date().toISOString()
+
+    const setParts: string[] = []
+    const values: any[] = []
+
+    if (typeof updates.source !== 'undefined') {
+      setParts.push('source = ?')
+      values.push(updates.source)
+    }
+
+    if (typeof updates.content !== 'undefined') {
+      setParts.push('content = ?')
+      values.push(updates.content || null)
+    }
+
+    if (setParts.length === 0) {
+      const existing = await ContentInput.findOne({ id, userId })
+      if (!existing) {
+        throw new Error('Content input not found')
+      }
+      return existing
+    }
+
+    setParts.push('updatedAt = ?')
+    values.push(now)
+    values.push(id, userId)
+
+    db.prepare(`
+      UPDATE content_inputs
+      SET ${setParts.join(', ')}
+      WHERE id = ? AND userId = ?
+    `).run(...values)
+
+    const updated = await ContentInput.findOne({ id, userId })
+    if (!updated) {
+      throw new Error('Content input not found after update')
+    }
+
+    return updated
+  },
+
+  async deleteOne(id: string, userId: string): Promise<boolean> {
+    const db = getDatabase()
+    const result = db.prepare('DELETE FROM content_inputs WHERE id = ? AND userId = ?').run(id, userId)
+    return result.changes > 0
+  },
+}
 
 export default ContentInput
-

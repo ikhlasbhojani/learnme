@@ -49,13 +49,11 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     throw new AppError('Invalid credentials', 401)
   }
 
-  user.lastLoginAt = new Date()
-  await user.save()
-
-  const token = generateAuthToken(user.id)
+  const updatedUser = await User.update(user.id, { lastLoginAt: new Date() })
+  const token = generateAuthToken(updatedUser.id)
 
   return {
-    user: user.toJSON(),
+    user: updatedUser.toJSON(),
     token,
   }
 }
@@ -69,12 +67,11 @@ export async function updateUserProfile(
     throw new AppError('User not found', 404)
   }
 
-  if (typeof updates.themePreference !== 'undefined') {
-    user.themePreference = updates.themePreference
-  }
+  const updatedUser = await User.update(userId, {
+    themePreference: updates.themePreference,
+  })
 
-  await user.save()
-  return user.toJSON()
+  return updatedUser.toJSON()
 }
 
 export async function findUserById(

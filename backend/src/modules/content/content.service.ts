@@ -1,4 +1,3 @@
-import { Types } from 'mongoose'
 import ContentInput, {
   type IContentInputDocument,
 } from './content.model'
@@ -13,7 +12,7 @@ export async function createContentInput(
   input: CreateContentInput
 ): Promise<ReturnType<IContentInputDocument['toJSON']>> {
   const content = await ContentInput.create({
-    user: new Types.ObjectId(userId),
+    userId,
     type: input.type,
     source: input.source,
     content: input.content ?? null,
@@ -25,7 +24,7 @@ export async function createContentInput(
 export async function listContentInputs(
   userId: string
 ): Promise<Array<ReturnType<IContentInputDocument['toJSON']>>> {
-  const items = await ContentInput.find({ user: userId }).sort({ createdAt: -1 })
+  const items = await ContentInput.find({ userId })
   return items.map((item) => item.toJSON())
 }
 
@@ -33,7 +32,7 @@ export async function getContentInputById(
   userId: string,
   id: string
 ): Promise<ReturnType<IContentInputDocument['toJSON']>> {
-  const item = await ContentInput.findOne({ _id: id, user: userId })
+  const item = await ContentInput.findOne({ id, userId })
   if (!item) {
     throw new AppError('Content input not found', 404)
   }
@@ -46,25 +45,17 @@ export async function updateContentInput(
   id: string,
   updates: UpdateContentInput
 ): Promise<ReturnType<IContentInputDocument['toJSON']>> {
-  const item = await ContentInput.findOneAndUpdate(
-    { _id: id, user: userId },
-    {
-      ...(typeof updates.source !== 'undefined' ? { source: updates.source } : {}),
-      ...(typeof updates.content !== 'undefined' ? { content: updates.content } : {}),
-    },
-    { new: true }
-  )
-
-  if (!item) {
-    throw new AppError('Content input not found', 404)
-  }
+  const item = await ContentInput.update(id, userId, {
+    source: updates.source,
+    content: updates.content,
+  })
 
   return item.toJSON()
 }
 
 export async function deleteContentInput(userId: string, id: string): Promise<void> {
-  const result = await ContentInput.deleteOne({ _id: id, user: userId })
-  if (result.deletedCount === 0) {
+  const deleted = await ContentInput.deleteOne(id, userId)
+  if (!deleted) {
     throw new AppError('Content input not found', 404)
   }
 }

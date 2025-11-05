@@ -1,0 +1,37 @@
+{
+  "name": "learnme",
+  "version": "1.0.0",
+  "description": "Modern learning application with AI-powered quiz generation",
+  "main": "bin/learnme.js",
+  "bin": {
+    "learnme": "./bin/learnme.js"
+  },
+  "files": [
+    "bin/",
+    "backend/",
+    "frontend/",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node bin/postinstall.js"
+  },
+  "keywords": [
+    "learning",
+    "quiz",
+    "education",
+    "ai",
+    "study",
+    "assessment"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "inquirer": "^8.2.6",
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1"
+  }
+}
+

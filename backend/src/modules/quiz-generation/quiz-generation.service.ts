@@ -1,4 +1,3 @@
-import { Types } from 'mongoose'
 import { OrchestratorAgent, type OrchestratorInput } from './agents/orchestrator.agent'
 import { AppError } from '../../utils/appError'
 import ContentInput from '../content/content.model'
@@ -45,15 +44,14 @@ export async function generateQuizFromUrl(
   const questionCount = Math.min(Math.max(1, numberOfQuestions || 10), 100)
 
   // Create or find content input
-  let contentInput = await ContentInput.findOne({
-    user: userId,
-    type: 'url',
-    source: url,
-  })
+  const existing = await ContentInput.find({ userId })
+  let contentInput = existing.find(
+    (item) => item.type === 'url' && item.source === url
+  )
 
   if (!contentInput) {
     contentInput = await ContentInput.create({
-      user: new Types.ObjectId(userId),
+      userId,
       type: 'url',
       source: url,
     })
@@ -91,8 +89,8 @@ export async function generateQuizFromUrl(
 
   // Create quiz with generated questions
   const quiz = await Quiz.create({
-    user: new Types.ObjectId(userId),
-    contentInput: contentInput._id,
+    userId,
+    contentInputId: contentInput.id,
     name: result.output.quizName || null,
     configuration: {
       difficulty: mappedDifficulty,
@@ -103,20 +101,21 @@ export async function generateQuizFromUrl(
       ...q,
       difficulty: mappedDifficulty,
     })),
-    answers: new Map(),
+    answers: {},
     status: 'pending',
   })
 
   // Update content input with extracted content if available
   if (result.metadata?.extractionMetadata) {
-    // You might want to store the extracted content in the content input
-    // For now, we'll just update the timestamp
-    contentInput.timestamp = new Date()
-    await contentInput.save()
+    // Update the content input timestamp
+    await ContentInput.update(contentInput.id, contentInput.userId, {
+      source: contentInput.source,
+      content: contentInput.content,
+    })
   }
 
   return {
-    quizId: quiz._id.toString(),
+    quizId: quiz.id,
     questions,
     metadata: result.output.metadata,
   }
@@ -137,7 +136,7 @@ export async function generateQuizFromDocument(
 
   // Create content input
   const contentInput = await ContentInput.create({
-    user: new Types.ObjectId(userId),
+    userId,
     type: 'file',
     source: 'uploaded-document',
     content: document,
@@ -175,8 +174,8 @@ export async function generateQuizFromDocument(
 
   // Create quiz with generated questions
   const quiz = await Quiz.create({
-    user: new Types.ObjectId(userId),
-    contentInput: contentInput._id,
+    userId,
+    contentInputId: contentInput.id,
     name: result.output.quizName || null,
     configuration: {
       difficulty: mappedDifficulty,
@@ -187,12 +186,12 @@ export async function generateQuizFromDocument(
       ...q,
       difficulty: mappedDifficulty,
     })),
-    answers: new Map(),
+    answers: {},
     status: 'pending',
   })
 
   return {
-    quizId: quiz._id.toString(),
+    quizId: quiz.id,
     questions,
     metadata: result.output.metadata,
   }

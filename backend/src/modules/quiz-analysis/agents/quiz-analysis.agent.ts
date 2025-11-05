@@ -43,7 +43,7 @@ export class QuizAnalysisAgent extends BaseAgent {
         output: analysis,
         metadata: {
           analyzedAt: new Date().toISOString(),
-          quizId: quiz._id.toString(),
+          quizId: quiz.id,
         },
       }
     } catch (error) {
@@ -114,9 +114,7 @@ export class QuizAnalysisAgent extends BaseAgent {
     )
 
     try {
-      const result = await this.model.generateContent(prompt)
-      const response = await result.response
-      const analysisText = response.text()
+      const analysisText = await this.aiProvider.generateText(prompt)
 
       // Parse the analysis
       return this.parseAnalysis(analysisText, difficultyStats, score)
