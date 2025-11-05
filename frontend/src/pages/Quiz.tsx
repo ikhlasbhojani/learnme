@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuiz } from '../hooks/useQuiz'
+import { quizService } from '../services/quizService'
 import { useTimer } from '../hooks/useTimer'
 import { useFullscreen } from '../hooks/useFullscreen'
 import { useTabVisibility } from '../hooks/useTabVisibility'
@@ -39,7 +40,7 @@ export default function Quiz() {
   const [showResumePrompt, setShowResumePrompt] = useState(false)
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const [tabVisibilityWarning, setTabVisibilityWarning] = useState<string | null>(null)
-  const { timeRemaining, start: startTimer, pause: pauseTimer, resume: resumeTimer, onExpire: setTimerExpire } = useTimer()
+  const { timeRemaining, start: startTimer, pause: pauseTimer, resume: resumeTimer, stop: stopTimer, onExpire: setTimerExpire } = useTimer()
   const { isFullscreen, isSupported, enterFullscreen, exitFullscreen, error: fullscreenErrorState } = useFullscreen()
   const { isVisible, onVisibilityChange, isSupported: isTabVisibilitySupported } = useTabVisibility()
   const quizStartedRef = useRef(false)
@@ -50,6 +51,7 @@ export default function Quiz() {
   }, [quiz, expireQuizHandler])
 
   const quizInitializedRef = useRef<string | null>(null)
+  const isStartingQuizRef = useRef(false)
 
   // Initialize quiz on mount - only once per quizId
   useEffect(() => {
@@ -66,18 +68,171 @@ export default function Quiz() {
     quizInitializedRef.current = quizId
 
     // Try to resume existing quiz
+    console.log('Loading quiz:', quizId)
     loadQuiz(quizId)
       .then((loadedQuiz) => {
+        console.log('Quiz loaded:', loadedQuiz ? { id: loadedQuiz.id, status: loadedQuiz.status } : null)
         if (loadedQuiz) {
-          if (loadedQuiz.status === 'in-progress') {
+          if (loadedQuiz.status === 'pending') {
+            // Quiz is pending, auto-start it
+            // Prevent multiple start attempts (but allow if previous attempt failed)
+            if (isStartingQuizRef.current) {
+              console.log('Quiz start already in progress, will retry after delay...')
+              // Wait a bit and check again
+              setTimeout(() => {
+                if (!isStartingQuizRef.current) {
+                  // Previous attempt completed/failed, try again
+                  loadQuiz(quizId).then((retryLoadedQuiz) => {
+                    if (retryLoadedQuiz && retryLoadedQuiz.status === 'pending') {
+                      // Try starting again
+                      isStartingQuizRef.current = true
+                      quizService.startQuiz(retryLoadedQuiz.id)
+                        .then(() => loadQuiz(quizId))
+                        .then((reloadedQuiz) => {
+                          if (reloadedQuiz && reloadedQuiz.status === 'in-progress' && reloadedQuiz.startTime) {
+                            const elapsed = Math.floor(
+                              (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                            )
+                            const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                            if (remaining > 0) {
+                              startTimer(remaining)
+                            }
+                          }
+                          isStartingQuizRef.current = false
+                        })
+                        .catch((err) => {
+                          console.error('Failed to start quiz on retry:', err)
+                          isStartingQuizRef.current = false
+                        })
+                    } else if (retryLoadedQuiz && retryLoadedQuiz.status === 'in-progress') {
+                      // Quiz already started, just start timer
+                      if (retryLoadedQuiz.startTime) {
+                        const elapsed = Math.floor(
+                          (Date.now() - new Date(retryLoadedQuiz.startTime).getTime()) / 1000
+                        )
+                        const remaining = Math.max(0, retryLoadedQuiz.configuration.timeDuration - elapsed)
+                        if (remaining > 0) {
+                          startTimer(remaining)
+                        }
+                      }
+                      isStartingQuizRef.current = false
+                    }
+                  })
+                }
+              }, 500)
+              return
+            }
+            
+            isStartingQuizRef.current = true
+            
+            // Reload quiz first to ensure we have the latest state before starting
+            loadQuiz(loadedQuiz.id)
+              .then((freshQuiz) => {
+                if (!freshQuiz || freshQuiz.status !== 'pending') {
+                  console.warn('Quiz status changed before start:', freshQuiz?.status)
+                  isStartingQuizRef.current = false
+                  // If quiz is already started, handle it as in-progress
+                  if (freshQuiz && freshQuiz.status === 'in-progress') {
+                    // Handle as in-progress quiz
+                    if (freshQuiz.startTime) {
+                      const elapsed = Math.floor(
+                        (Date.now() - new Date(freshQuiz.startTime).getTime()) / 1000
+                      )
+                      const remaining = Math.max(0, freshQuiz.configuration.timeDuration - elapsed)
+                      if (remaining > 0) {
+                        startTimer(remaining)
+                      } else {
+                        handleTimerExpiration()
+                      }
+                    }
+                  }
+                  return
+                }
+                
+                // Quiz is still pending, start it
+                return quizService.startQuiz(freshQuiz.id)
+              })
+              .then((startedQuiz) => {
+                if (!startedQuiz) return
+                
+                // Reload to ensure we have the latest state and update hook state
+                return loadQuiz(loadedQuiz.id)
+              })
+              .then((reloadedQuiz) => {
+                if (reloadedQuiz && reloadedQuiz.status === 'in-progress' && reloadedQuiz.startTime) {
+                  // Calculate elapsed time since start
+                  const elapsed = Math.floor(
+                    (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                  )
+                  const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                  
+                  if (remaining > 0) {
+                    // Start timer with remaining time
+                    startTimer(remaining)
+                  } else {
+                    // Timer expired, auto-submit
+                    handleTimerExpiration()
+                  }
+                }
+              })
+              .catch((err) => {
+                console.error('Failed to start quiz:', err)
+                isStartingQuizRef.current = false
+                // If quiz is already started, reload it
+                if (err.message && err.message.includes('must be in one of the following states')) {
+                  console.log('Quiz may already be started, reloading...')
+                  loadQuiz(loadedQuiz.id)
+                    .then((reloadedQuiz) => {
+                      if (reloadedQuiz && reloadedQuiz.status === 'in-progress') {
+                        if (reloadedQuiz.startTime) {
+                          const elapsed = Math.floor(
+                            (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                          )
+                          const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                          if (remaining > 0) {
+                            startTimer(remaining)
+                          }
+                        }
+                      }
+                    })
+                    .catch((reloadErr) => {
+                      console.error('Failed to reload quiz after start error:', reloadErr)
+                      quizInitializedRef.current = null
+                    })
+                } else {
+                  // Reset initialization ref so user can retry
+                  quizInitializedRef.current = null
+                }
+              })
+              .finally(() => {
+                // Reset the flag after a delay to allow for completion
+                setTimeout(() => {
+                  isStartingQuizRef.current = false
+                }, 2000)
+              })
+          } else if (loadedQuiz.status === 'in-progress') {
             // Resume timer if quiz was in progress
             if (loadedQuiz.startTime) {
-              const elapsed = Math.floor(
-                (Date.now() - new Date(loadedQuiz.startTime).getTime()) / 1000
-              )
-              const remaining = loadedQuiz.configuration.timeDuration - elapsed
+              // Calculate elapsed time, accounting for pause time
+              const startTime = new Date(loadedQuiz.startTime).getTime()
+              const now = Date.now()
+              const elapsed = Math.floor((now - startTime) / 1000)
+              
+              // Account for pause duration if quiz was paused
+              let pauseDuration = 0
+              if (loadedQuiz.pausedAt) {
+                const pausedAt = new Date(loadedQuiz.pausedAt).getTime()
+                pauseDuration = Math.floor((now - pausedAt) / 1000)
+              }
+              
+              const actualElapsed = elapsed - pauseDuration
+              const remaining = Math.max(0, loadedQuiz.configuration.timeDuration - actualElapsed)
+              
               if (remaining > 0) {
-                startTimer(remaining)
+                // Only start timer if quiz is not paused
+                if (!loadedQuiz.pauseReason) {
+                  startTimer(remaining)
+                }
               } else {
                 // Timer expired, auto-submit
                 handleTimerExpiration()
@@ -88,49 +243,158 @@ export default function Quiz() {
             if (loadedQuiz.pauseReason === 'tab-change') {
               setShowResumePrompt(true)
             }
+          } else if (loadedQuiz.status === 'completed' || loadedQuiz.status === 'expired') {
+            // Quiz is already completed, navigate to assessment
+            navigate(`/assessment/${loadedQuiz.id}`)
           }
-          // Quiz exists and is loaded, no further action needed
         } else {
-          // Quiz doesn't exist (404), check if we can create from URL params
-          const difficulty = searchParams.get('difficulty') as QuizConfiguration['difficulty']
-          const questions = parseInt(searchParams.get('questions') || '10', 10)
-          const duration = parseInt(searchParams.get('duration') || '600', 10)
+          // Quiz doesn't exist (404)
+          console.error('Quiz not found:', quizId)
+          // Wait a moment and retry - quiz might still be saving
+          setTimeout(() => {
+            loadQuiz(quizId)
+              .then((retryQuiz) => {
+                if (retryQuiz) {
+                  // Quiz found on retry, handle it
+                  if (retryQuiz.status === 'pending') {
+                    // Reload fresh state before starting
+                    loadQuiz(quizId)
+                      .then((freshQuiz) => {
+                        if (!freshQuiz || freshQuiz.status !== 'pending') {
+                          if (freshQuiz && freshQuiz.status === 'in-progress') {
+                            // Already started, just start timer
+                            if (freshQuiz.startTime) {
+                              const elapsed = Math.floor(
+                                (Date.now() - new Date(freshQuiz.startTime).getTime()) / 1000
+                              )
+                              const remaining = Math.max(0, freshQuiz.configuration.timeDuration - elapsed)
+                              if (remaining > 0) {
+                                startTimer(remaining)
+                              }
+                            }
+                          }
+                          return
+                        }
+                        return quizService.startQuiz(freshQuiz.id)
+                      })
+                      .then(() => loadQuiz(quizId))
+                      .then((reloadedQuiz) => {
+                        if (reloadedQuiz && reloadedQuiz.status === 'in-progress' && reloadedQuiz.startTime) {
+                          const elapsed = Math.floor(
+                            (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                          )
+                          const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                          if (remaining > 0) {
+                            startTimer(remaining)
+                          }
+                        }
+                      })
+                      .catch((err) => {
+                        console.error('Failed to start quiz on retry:', err)
+                        // If already started, just load and start timer
+                        loadQuiz(quizId).then((reloadedQuiz) => {
+                          if (reloadedQuiz && reloadedQuiz.status === 'in-progress' && reloadedQuiz.startTime) {
+                            const elapsed = Math.floor(
+                              (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                            )
+                            const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                            if (remaining > 0) {
+                              startTimer(remaining)
+                            }
+                          }
+                        })
+                      })
+                  } else if (retryQuiz.status === 'in-progress') {
+                    // Already in progress, just start timer
+                    if (retryQuiz.startTime) {
+                      const elapsed = Math.floor(
+                        (Date.now() - new Date(retryQuiz.startTime).getTime()) / 1000
+                      )
+                      const remaining = Math.max(0, retryQuiz.configuration.timeDuration - elapsed)
+                      if (remaining > 0) {
+                        startTimer(remaining)
+                      }
+                    }
+                  }
+                } else {
+                  // Still not found after retry, check URL params or redirect
+                  const difficulty = searchParams.get('difficulty') as QuizConfiguration['difficulty']
+                  const questions = parseInt(searchParams.get('questions') || '10', 10)
+                  const duration = parseInt(searchParams.get('duration') || '600', 10)
 
-          if (difficulty && questions && duration) {
-            // Create new quiz from URL params
-            const config: QuizConfiguration = {
-              difficulty,
-              numberOfQuestions: questions,
-              timeDuration: duration,
-            }
-            startQuizHandler(config, null)
-          } else {
-            // No valid params, redirect to quiz config
-            console.warn('Quiz not found and no valid config params, redirecting to quiz-config')
-            navigate('/quiz-config')
-          }
+                  if (difficulty && questions && duration) {
+                    const config: QuizConfiguration = {
+                      difficulty,
+                      numberOfQuestions: questions,
+                      timeDuration: duration,
+                    }
+                    startQuizHandler(config, null)
+                  } else {
+                    console.error('Quiz not found after retry:', quizId)
+                    alert('Quiz not found. Please try generating again.')
+                    navigate('/generate-quiz')
+                  }
+                }
+              })
+              .catch((retryErr) => {
+                console.error('Failed to load quiz on retry:', retryErr)
+                alert('Failed to load quiz. Please try generating again.')
+                navigate('/generate-quiz')
+              })
+          }, 1000) // Wait 1 second before retry
         }
       })
       .catch((error) => {
         console.error('Failed to load quiz:', error)
         quizInitializedRef.current = null
         
-        // On error, try to create from URL params if available
-        const difficulty = searchParams.get('difficulty') as QuizConfiguration['difficulty']
-        const questions = parseInt(searchParams.get('questions') || '10', 10)
-        const duration = parseInt(searchParams.get('duration') || '600', 10)
+        // Wait a moment and retry - might be a timing issue
+        setTimeout(() => {
+          loadQuiz(quizId)
+            .then((retryQuiz) => {
+              if (retryQuiz) {
+                // Quiz found on retry, handle it normally
+                if (retryQuiz.status === 'pending') {
+                  quizService.startQuiz(retryQuiz.id)
+                    .then(() => loadQuiz(quizId))
+                    .then((reloadedQuiz) => {
+                      if (reloadedQuiz && reloadedQuiz.status === 'in-progress' && reloadedQuiz.startTime) {
+                        const elapsed = Math.floor(
+                          (Date.now() - new Date(reloadedQuiz.startTime).getTime()) / 1000
+                        )
+                        const remaining = Math.max(0, reloadedQuiz.configuration.timeDuration - elapsed)
+                        if (remaining > 0) {
+                          startTimer(remaining)
+                        }
+                      }
+                    })
+                }
+              } else {
+                // Still not found, check URL params or redirect to generate page
+                const difficulty = searchParams.get('difficulty') as QuizConfiguration['difficulty']
+                const questions = parseInt(searchParams.get('questions') || '10', 10)
+                const duration = parseInt(searchParams.get('duration') || '600', 10)
 
-        if (difficulty && questions && duration) {
-          const config: QuizConfiguration = {
-            difficulty,
-            numberOfQuestions: questions,
-            timeDuration: duration,
-          }
-          startQuizHandler(config, null)
-        } else {
-          // Redirect to quiz config on error
-          navigate('/quiz-config')
-        }
+                if (difficulty && questions && duration) {
+                  const config: QuizConfiguration = {
+                    difficulty,
+                    numberOfQuestions: questions,
+                    timeDuration: duration,
+                  }
+                  startQuizHandler(config, null)
+                } else {
+                  console.error('Quiz not found after retry:', quizId)
+                  alert('Quiz not found. Please try generating again.')
+                  navigate('/generate-quiz')
+                }
+              }
+            })
+            .catch((retryErr) => {
+              console.error('Failed to load quiz on retry:', retryErr)
+              alert('Failed to load quiz. Please try generating again.')
+              navigate('/generate-quiz')
+            })
+        }, 1000) // Wait 1 second before retry
       })
 
     // Cleanup: reset ref when quizId changes
@@ -147,26 +411,42 @@ export default function Quiz() {
   useEffect(() => {
     if (quiz && quiz.status === 'in-progress' && !quizStartedRef.current && isSupported) {
       quizStartedRef.current = true
+      // Try to enter fullscreen, but don't block quiz if it fails
       enterFullscreen().catch((err) => {
         const errorMsg =
           err instanceof Error
             ? err.message.includes('not supported')
-              ? 'Fullscreen mode is required to start the quiz. Please use a modern browser that supports fullscreen.'
-              : 'Fullscreen permission was denied. Please allow fullscreen mode to start the quiz.'
-            : 'Fullscreen permission was denied. Please allow fullscreen mode to start the quiz.'
+              ? 'Fullscreen mode is not supported. Quiz will continue in normal mode.'
+              : err.message.includes('user gesture')
+              ? 'Fullscreen requires a user gesture. Quiz will continue in normal mode.'
+              : 'Fullscreen permission was denied. Quiz will continue in normal mode.'
+            : 'Fullscreen permission was denied. Quiz will continue in normal mode.'
         setFullscreenError(errorMsg)
-        // Don't start quiz if fullscreen fails (per FR-001)
-        navigate('/quiz-config')
+        // Don't navigate away - just show warning and continue quiz
+        console.warn('Fullscreen failed, continuing quiz in normal mode:', err)
       })
     }
-  }, [quiz?.status, isSupported, enterFullscreen, navigate])
+  }, [quiz?.status, isSupported, enterFullscreen])
 
-  // Start timer when quiz starts
+  // Start timer when quiz starts (only if not already running)
   useEffect(() => {
-    if (quiz && quiz.status === 'in-progress' && quiz.startTime && timeRemaining === 0) {
-      startTimer(quiz.configuration.timeDuration)
+    if (quiz && quiz.status === 'in-progress' && quiz.startTime) {
+      // Calculate remaining time based on start time and duration
+      const elapsed = Math.floor(
+        (Date.now() - new Date(quiz.startTime).getTime()) / 1000
+      )
+      const remaining = Math.max(0, quiz.configuration.timeDuration - elapsed)
+      
+      // Only start timer if it's not already running and we have time remaining
+      if (timeRemaining === 0 && remaining > 0) {
+        startTimer(remaining)
+      } else if (remaining <= 0 && timeRemaining > 0) {
+        // Timer should have expired
+        handleTimerExpiration()
+      }
     }
-  }, [quiz?.status, quiz?.startTime])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quiz?.status, quiz?.startTime, quiz?.configuration?.timeDuration, timeRemaining])
 
   // Load selected answer for current question
   useEffect(() => {
@@ -270,13 +550,18 @@ export default function Quiz() {
     const resumed = await resumeQuiz(quiz.id)
 
     if (resumed?.startTime && pausedAt) {
-      const pauseDuration = Math.floor((Date.now() - pausedAt.getTime()) / 1000)
-      const totalElapsed = Math.floor(
-        (Date.now() - new Date(resumed.startTime).getTime()) / 1000
-      ) - pauseDuration
-      const remaining = resumed.configuration.timeDuration - totalElapsed
+      // Calculate remaining time accounting for pause
+      const startTime = new Date(resumed.startTime).getTime()
+      const pausedAtTime = pausedAt.getTime()
+      const now = Date.now()
+      
+      const totalElapsed = Math.floor((now - startTime) / 1000)
+      const pauseDuration = Math.floor((now - pausedAtTime) / 1000)
+      const actualElapsed = totalElapsed - pauseDuration
+      const remaining = Math.max(0, resumed.configuration.timeDuration - actualElapsed)
+      
       if (remaining > 0) {
-        startTimer(remaining)
+        resumeTimer()
       } else {
         handleTimerExpiration()
       }
@@ -285,21 +570,33 @@ export default function Quiz() {
     setShowResumePrompt(false)
   }
 
-  const handleAnswerSelect = (answer: string) => {
-    if (!currentQuestion) return
-    // Just update local state - don't call backend yet
+  const handleAnswerSelect = async (answer: string) => {
+    if (!currentQuestion || !quiz) return
+    
+    // Update local state immediately for UI feedback
     setSelectedAnswer(answer)
+    
+    // Save answer to backend immediately
+    try {
+      await answerQuestion(currentQuestion.id, answer)
+    } catch (err) {
+      console.error('Failed to save answer:', err)
+      // Show error but keep the selection in UI
+    }
   }
 
   const handleNext = async () => {
     if (!currentQuestion || !selectedAnswer || !quiz) return
     
-    // Save answer to backend first
-    try {
-      await answerQuestion(currentQuestion.id, selectedAnswer)
-    } catch (err) {
-      console.error('Failed to save answer:', err)
-      // Continue anyway to next question
+    // Answer should already be saved when selected, but ensure it's saved
+    const currentAnswers = quiz.answers || {}
+    if (currentAnswers[currentQuestion.id] !== selectedAnswer) {
+      try {
+        await answerQuestion(currentQuestion.id, selectedAnswer)
+      } catch (err) {
+        console.error('Failed to save answer:', err)
+        // Continue anyway to next question
+      }
     }
     
     // Clear selected answer
@@ -310,18 +607,86 @@ export default function Quiz() {
   }
 
   const handleFinish = async () => {
-    if (!currentQuestion || !selectedAnswer) return
-    
-    // Save final answer to backend first
-    try {
-      await answerQuestion(currentQuestion.id, selectedAnswer)
-    } catch (err) {
-      console.error('Failed to save final answer:', err)
-      // Continue anyway to finish quiz
+    if (!quiz) {
+      console.error('No quiz available to finish')
+      return
     }
     
-    // Then finish the quiz
-    await finishQuiz()
+    // Prevent multiple clicks and ensure quiz is in progress
+    if (quiz.status !== 'in-progress') {
+      console.warn('Quiz is not in progress, cannot finish. Status:', quiz.status)
+      if (quiz.status === 'completed' || quiz.status === 'expired') {
+        navigate(`/assessment/${quiz.id}`)
+      }
+      return
+    }
+    
+    try {
+      // Stop the timer
+      stopTimer()
+      
+      // Save final answer if there's one selected
+      if (currentQuestion && selectedAnswer) {
+        try {
+          await answerQuestion(currentQuestion.id, selectedAnswer)
+          // Wait a moment for the save to complete
+          await new Promise((resolve) => setTimeout(resolve, 200))
+        } catch (err) {
+          console.error('Failed to save final answer:', err)
+          // Continue anyway to finish quiz
+        }
+      }
+      
+      // Ensure all answers are saved - save any unsaved answers
+      const currentAnswers = quiz.answers || {}
+      const unsavedQuestions = quiz.questions.filter((q) => !currentAnswers[q.id])
+      
+      if (unsavedQuestions.length > 0) {
+        // Save any missing answers (empty string for unanswered)
+        for (const question of unsavedQuestions) {
+          try {
+            await answerQuestion(question.id, '')
+          } catch (err) {
+            console.error(`Failed to save answer for question ${question.id}:`, err)
+          }
+        }
+        // Wait for all saves to complete
+        await new Promise((resolve) => setTimeout(resolve, 300))
+      }
+      
+      // Reload quiz to get latest state before finishing
+      try {
+        const latestQuiz = await loadQuiz(quiz.id)
+        if (latestQuiz && latestQuiz.status === 'in-progress') {
+          // Then finish the quiz
+          await finishQuiz()
+        } else if (latestQuiz) {
+          // Quiz already finished, navigate to assessment
+          navigate(`/assessment/${quiz.id}`)
+        } else {
+          throw new Error('Failed to load latest quiz state')
+        }
+      } catch (finishErr) {
+        console.error('Failed to finish quiz:', finishErr)
+        // Try one more time without reload
+        try {
+          await finishQuiz()
+        } catch (retryErr) {
+          console.error('Failed to finish quiz after retry:', retryErr)
+          // Show error to user
+          alert('Failed to finish quiz. Please try again.')
+        }
+      }
+    } catch (err) {
+      console.error('Error in handleFinish:', err)
+      // Still try to finish even if there were errors
+      try {
+        await finishQuiz()
+      } catch (finishErr) {
+        console.error('Failed to finish quiz after retry:', finishErr)
+        alert('Failed to finish quiz. Please try again.')
+      }
+    }
   }
 
   if (loading || !quiz || !currentQuestion) {
@@ -416,7 +781,7 @@ export default function Quiz() {
                   marginTop: theme.spacing.xs,
                   width: '300px',
                   height: '8px',
-                  backgroundColor: theme.colors.neutral[200],
+                  backgroundColor: colors.gray[200],
                   borderRadius: theme.borderRadius.full,
                   overflow: 'hidden',
                 }}
@@ -425,7 +790,7 @@ export default function Quiz() {
                   style={{
                     width: `${((currentQuestionIndex + 1) / quiz.questions.length) * 100}%`,
                     height: '100%',
-                    backgroundColor: theme.colors.primary[600],
+                    backgroundColor: colors.primary,
                     transition: 'width 0.3s',
                   }}
                 />

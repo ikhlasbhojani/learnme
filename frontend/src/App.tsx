@@ -10,6 +10,7 @@ import Signup from './pages/Signup'
 import Home from './pages/Home'
 import LearningModes from './pages/LearningModes'
 import QuizConfigPage from './pages/QuizConfig'
+import GenerateQuiz from './pages/GenerateQuiz'
 import Quiz from './pages/Quiz'
 import Assessment from './pages/Assessment'
 import QuizHistory from './pages/QuizHistory'
@@ -49,6 +50,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <QuizConfigPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/generate-quiz"
+                  element={
+                    <ProtectedRoute>
+                      <GenerateQuiz />
                     </ProtectedRoute>
                   }
                 />

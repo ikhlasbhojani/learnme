@@ -244,6 +244,18 @@ export async function finishQuiz(userId: string, quizId: string) {
   quiz.pausedAt = null
 
   await quiz.save()
+
+  // Trigger AI analysis asynchronously (don't wait for it)
+  try {
+    const { analyzeQuiz } = await import('../quiz-analysis/quiz-analysis.service')
+    analyzeQuiz(userId, quizId).catch((err) => {
+      console.error('Failed to analyze quiz:', err)
+      // Don't throw - analysis is optional enhancement
+    })
+  } catch (err) {
+    console.error('Failed to load analysis service:', err)
+  }
+
   return quiz.toJSON()
 }
 
@@ -260,6 +272,18 @@ export async function expireQuiz(userId: string, quizId: string) {
   quiz.score = score
 
   await quiz.save()
+
+  // Trigger AI analysis asynchronously (don't wait for it)
+  try {
+    const { analyzeQuiz } = await import('../quiz-analysis/quiz-analysis.service')
+    analyzeQuiz(userId, quizId).catch((err) => {
+      console.error('Failed to analyze quiz:', err)
+      // Don't throw - analysis is optional enhancement
+    })
+  } catch (err) {
+    console.error('Failed to load analysis service:', err)
+  }
+
   return quiz.toJSON()
 }
 
@@ -319,6 +343,17 @@ export async function getQuizAssessment(userId: string, quizId: string): Promise
   const quiz = ensureQuizOwnership(await Quiz.findById(quizId), userId)
   if (!['completed', 'expired'].includes(quiz.status)) {
     throw new AppError('Assessment is only available for completed or expired quizzes', 400)
+  }
+
+  // If AI analysis exists, use it; otherwise use basic assessment
+  if (quiz.analysis && quiz.analysis.analyzedAt) {
+    const baseAssessment = buildAssessment(quiz)
+    return {
+      ...baseAssessment,
+      performanceReview: quiz.analysis.performanceReview || baseAssessment.performanceReview,
+      weakAreas: quiz.analysis.weakAreas || baseAssessment.weakAreas,
+      suggestions: quiz.analysis.suggestions || baseAssessment.suggestions,
+    }
   }
 
   return buildAssessment(quiz)

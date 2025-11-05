@@ -5,9 +5,10 @@ import { useTheme } from '../../contexts/ThemeContext'
 
 interface AssessmentSummaryProps {
   result: AssessmentResult
+  quizName?: string | null
 }
 
-export const AssessmentSummary: React.FC<AssessmentSummaryProps> = ({ result }) => {
+export const AssessmentSummary: React.FC<AssessmentSummaryProps> = ({ result, quizName }) => {
   const { isDark } = useTheme()
   const colors = getThemeColors(isDark)
   
@@ -23,6 +24,36 @@ export const AssessmentSummary: React.FC<AssessmentSummaryProps> = ({ result }) 
         margin: '0 auto',
       }}
     >
+      {quizName && (
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: theme.spacing.lg,
+          }}
+        >
+          <div
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: colors.gray[500],
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: theme.spacing.xs,
+            }}
+          >
+            Quiz Name
+          </div>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: colors.text,
+            }}
+          >
+            {quizName}
+          </h1>
+        </div>
+      )}
+      
       <h2
         style={{
           fontSize: theme.typography.fontSize['2xl'],

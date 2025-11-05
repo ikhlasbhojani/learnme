@@ -14,6 +14,7 @@ const envSchema = z
     MONGODB_URI: z.string().min(1, 'MONGODB_URI is required'),
     JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters'),
     CORS_ORIGIN: z.string().optional(),
+    GEMINI_API_KEY: z.string().min(1, 'GEMINI_API_KEY is required'),
   })
   .passthrough()
 
@@ -32,6 +33,7 @@ export const appEnv = {
   mongoUri: env.MONGODB_URI,
   jwtSecret: env.JWT_SECRET,
   corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
+  geminiApiKey: env.GEMINI_API_KEY,
   isProduction: env.NODE_ENV === 'production',
 }
 

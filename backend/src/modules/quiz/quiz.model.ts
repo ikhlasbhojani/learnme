@@ -19,9 +19,20 @@ export interface IQuizQuestion {
   explanation?: string | null
 }
 
+export interface IQuizAnalysis {
+  performanceReview?: string
+  weakAreas?: string[]
+  suggestions?: string[]
+  detailedAnalysis?: string
+  strengths?: string[]
+  improvementAreas?: string[]
+  analyzedAt?: Date | null
+}
+
 export interface IQuiz {
   user: Types.ObjectId
   contentInput?: Types.ObjectId | null
+  name?: string | null
   configuration: IQuizConfiguration
   questions: IQuizQuestion[]
   answers: Map<string, string> | Record<string, string>
@@ -34,6 +45,7 @@ export interface IQuiz {
   pauseReason?: QuizPauseReason | null
   pausedAt?: Date | null
   pauseCount?: number
+  analysis?: IQuizAnalysis | null
 }
 
 export interface IQuizDocument extends IQuiz, Document {
@@ -109,6 +121,11 @@ const quizSchema = new Schema<IQuizDocument>(
       ref: 'ContentInput',
       default: null,
     },
+    name: {
+      type: String,
+      default: null,
+      maxlength: 100,
+    },
     configuration: {
       type: quizConfigurationSchema,
       required: true,
@@ -160,6 +177,18 @@ const quizSchema = new Schema<IQuizDocument>(
     pauseCount: {
       type: Number,
       default: 0,
+    },
+    analysis: {
+      type: {
+        performanceReview: String,
+        weakAreas: [String],
+        suggestions: [String],
+        detailedAnalysis: String,
+        strengths: [String],
+        improvementAreas: [String],
+        analyzedAt: Date,
+      },
+      default: null,
     },
   },
   {

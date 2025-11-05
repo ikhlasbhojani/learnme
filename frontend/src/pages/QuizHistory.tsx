@@ -203,6 +203,25 @@ export default function QuizHistory() {
                   }
                 }}
               >
+                {quiz.name && (
+                  <div
+                    style={{
+                      marginBottom: theme.spacing.md,
+                    }}
+                  >
+                    <h3
+                      style={{
+                        fontSize: theme.typography.fontSize.xl,
+                        fontWeight: theme.typography.fontWeight.bold,
+                        color: colors.text,
+                        marginBottom: theme.spacing.xs,
+                        lineHeight: 1.3,
+                      }}
+                    >
+                      {quiz.name}
+                    </h3>
+                  </div>
+                )}
                 <div
                   style={{
                     display: 'flex',

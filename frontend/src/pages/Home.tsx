@@ -20,17 +20,18 @@ export default function Home() {
     navigate('/learning-modes?input=manual')
   }
 
-  const handleFileSelect = (file: File) => {
-    setFileError(null)
-    // File is uploaded, navigate to learning modes
-    setShowFileModal(false)
-    navigate('/learning-modes?input=file')
-  }
 
   const handleURLSubmit = (url: string) => {
-    // URL is processed, navigate to learning modes
+    // URL is processed, navigate to quiz generation
     setShowURLModal(false)
-    navigate('/learning-modes?input=url')
+    navigate('/generate-quiz?url=' + encodeURIComponent(url))
+  }
+
+  const handleFileSelect = (file: File) => {
+    setFileError(null)
+    // Navigate to quiz generation page - user can upload file there
+    setShowFileModal(false)
+    navigate('/generate-quiz')
   }
 
   return (

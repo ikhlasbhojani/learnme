@@ -6,11 +6,13 @@ import { useTheme } from '../../contexts/ThemeContext'
 
 interface AssessmentResultsProps {
   result: AssessmentResult
+  quizName?: string | null
   onViewSummary: () => void
 }
 
 export const AssessmentResults: React.FC<AssessmentResultsProps> = ({
   result,
+  quizName,
   onViewSummary,
 }) => {
   const { isDark } = useTheme()
@@ -28,6 +30,37 @@ export const AssessmentResults: React.FC<AssessmentResultsProps> = ({
         margin: '0 auto',
       }}
     >
+      {quizName && (
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: theme.spacing.md,
+          }}
+        >
+          <div
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: colors.gray[500],
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: theme.spacing.xs,
+            }}
+          >
+            Quiz Name
+          </div>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: colors.text,
+              marginBottom: theme.spacing.lg,
+            }}
+          >
+            {quizName}
+          </h1>
+        </div>
+      )}
+      
       <h2
         style={{
           fontSize: theme.typography.fontSize['3xl'],

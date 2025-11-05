@@ -14,7 +14,8 @@ export function useTimer(): UseTimerReturn {
   const [timeRemaining, setTimeRemaining] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
   const [startTime, setStartTime] = useState<number | null>(null)
-  const [pausedDuration, setPausedDuration] = useState(0)
+  const [pausedAt, setPausedAt] = useState<number | null>(null)
+  const [totalPausedDuration, setTotalPausedDuration] = useState(0)
   const [initialDuration, setInitialDuration] = useState(0)
   const expireCallbackRef = useRef<(() => void) | null>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -47,43 +48,71 @@ export function useTimer(): UseTimerReturn {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
+        intervalRef.current = null
       }
     }
   }, [isRunning, timeRemaining])
 
   const start = useCallback((duration: number) => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+    
     setInitialDuration(duration)
     setTimeRemaining(duration)
     setStartTime(Date.now())
-    setPausedDuration(0)
+    setPausedAt(null)
+    setTotalPausedDuration(0)
     setIsRunning(true)
   }, [])
 
   const pause = useCallback(() => {
+    if (!isRunning) return
+    
     setIsRunning(false)
-    if (startTime) {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000)
-      setPausedDuration(elapsed)
-    }
-  }, [startTime])
+    setPausedAt(Date.now())
+  }, [isRunning])
 
   const resume = useCallback(() => {
-    if (startTime && pausedDuration > 0) {
-      const remaining = initialDuration - pausedDuration
-      if (remaining > 0) {
-        setTimeRemaining(remaining)
-        setStartTime(Date.now())
-        setIsRunning(true)
+    if (isRunning || !pausedAt || !startTime) return
+    
+    // Calculate how long we were paused
+    const pauseDuration = Math.floor((Date.now() - pausedAt) / 1000)
+    const newTotalPausedDuration = totalPausedDuration + pauseDuration
+    
+    // Calculate remaining time based on elapsed time minus total pause time
+    const elapsed = Math.floor((Date.now() - startTime) / 1000)
+    const actualElapsed = elapsed - newTotalPausedDuration
+    const remaining = Math.max(0, initialDuration - actualElapsed)
+    
+    if (remaining > 0) {
+      setTimeRemaining(remaining)
+      setTotalPausedDuration(newTotalPausedDuration)
+      setPausedAt(null)
+      setIsRunning(true)
+    } else {
+      // Time expired while paused
+      setTimeRemaining(0)
+      setIsRunning(false)
+      if (expireCallbackRef.current) {
+        expireCallbackRef.current()
       }
     }
-  }, [startTime, pausedDuration, initialDuration])
+  }, [isRunning, pausedAt, startTime, totalPausedDuration, initialDuration])
 
   const stop = useCallback(() => {
     setIsRunning(false)
     setTimeRemaining(0)
     setStartTime(null)
-    setPausedDuration(0)
+    setPausedAt(null)
+    setTotalPausedDuration(0)
     setInitialDuration(0)
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
   }, [])
 
   return {

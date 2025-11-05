@@ -141,7 +141,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             variant="primary"
             size="lg"
             onClick={onFinish}
-            disabled={!selectedAnswer}
           >
             Finish Quiz
           </Button>

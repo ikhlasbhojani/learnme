@@ -40,6 +40,7 @@ export interface QuizInstance {
   id: string
   userId: string
   contentInputId: string | null
+  name: string | null
   configuration: QuizConfiguration
   questions: Question[]
   answers: Record<string, string>

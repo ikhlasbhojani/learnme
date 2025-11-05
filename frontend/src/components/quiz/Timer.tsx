@@ -1,5 +1,6 @@
 import React from 'react'
-import { theme } from '../../styles/theme'
+import { theme, getThemeColors } from '../../styles/theme'
+import { useTheme } from '../../contexts/ThemeContext'
 
 interface TimerProps {
   timeRemaining: number // in seconds
@@ -7,14 +8,16 @@ interface TimerProps {
 }
 
 export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
+  const { isDark } = useTheme()
+  const colors = getThemeColors(isDark)
   const minutes = Math.floor(timeRemaining / 60)
   const seconds = timeRemaining % 60
   const percentage = totalTime > 0 ? (timeRemaining / totalTime) * 100 : 0
 
   const getColor = () => {
-    if (percentage > 50) return theme.colors.success
-    if (percentage > 25) return theme.colors.warning
-    return theme.colors.error
+    if (percentage > 50) return colors.success
+    if (percentage > 25) return colors.warning
+    return colors.error
   }
 
   return (
@@ -40,7 +43,7 @@ export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
         style={{
           width: '200px',
           height: '8px',
-          backgroundColor: theme.colors.neutral[200],
+          backgroundColor: colors.gray[200],
           borderRadius: theme.borderRadius.full,
           overflow: 'hidden',
         }}

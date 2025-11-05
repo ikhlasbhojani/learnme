@@ -3,9 +3,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AssessmentResults } from '../components/quiz/AssessmentResults'
 import { AssessmentSummary } from '../components/quiz/AssessmentSummary'
-import { AssessmentResult, QuizInstance } from '../types'
-import { generateAssessment, expireQuiz } from '../utils/quiz'
-import { getStorageItem, STORAGE_KEYS } from '../utils/storage'
+import { AssessmentResult } from '../types'
+import { quizService } from '../services/quizService'
 import { theme } from '../styles/theme'
 
 export default function Assessment() {
@@ -13,9 +12,10 @@ export default function Assessment() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [result, setResult] = useState<AssessmentResult | null>(null)
+  const [quizName, setQuizName] = useState<string | null>(null)
   const [showSummary, setShowSummary] = useState(false)
   const [loading, setLoading] = useState(true)
-  const isExpired = searchParams.get('expired') === 'true'
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!quizId) {
@@ -23,37 +23,40 @@ export default function Assessment() {
       return
     }
 
-    // Try to get quiz from storage (might be expired or completed)
-    const savedQuiz = getStorageItem<QuizInstance>(STORAGE_KEYS.QUIZ(quizId))
-
-    let quizToProcess: QuizInstance | null = savedQuiz
-
-    // If quiz expired and not yet processed, expire it
-    if (isExpired && savedQuiz && savedQuiz.status === 'in-progress') {
-      quizToProcess = expireQuiz(savedQuiz)
-    }
-
-    if (quizToProcess && (quizToProcess.status === 'completed' || quizToProcess.status === 'expired')) {
-      const assessment = generateAssessment(quizToProcess)
-      setResult(assessment)
-    } else {
-      // Fallback: create dummy result if quiz not found (shouldn't happen in normal flow)
-      const assessment: AssessmentResult = {
-        quizInstanceId: quizId,
-        totalScore: 0,
-        correctCount: 0,
-        incorrectCount: 0,
-        unansweredCount: 0,
-        performanceReview: 'Unable to load quiz results.',
-        weakAreas: [],
-        suggestions: ['Please try taking the quiz again.'],
-        generatedAt: new Date(),
+    const fetchAssessment = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        // Fetch both assessment and quiz info
+        const [assessment, quiz] = await Promise.all([
+          quizService.fetchAssessment(quizId),
+          quizService.fetchQuiz(quizId).catch(() => null), // Don't fail if quiz fetch fails
+        ])
+        setResult(assessment)
+        setQuizName(quiz?.name || null)
+      } catch (err) {
+        console.error('Failed to fetch assessment:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load assessment')
+        // Fallback: create dummy result
+        const assessment: AssessmentResult = {
+          quizInstanceId: quizId,
+          totalScore: 0,
+          correctCount: 0,
+          incorrectCount: 0,
+          unansweredCount: 0,
+          performanceReview: 'Unable to load quiz results. Please try again later.',
+          weakAreas: [],
+          suggestions: ['Please try refreshing the page or taking the quiz again.'],
+          generatedAt: new Date(),
+        }
+        setResult(assessment)
+      } finally {
+        setLoading(false)
       }
-      setResult(assessment)
     }
 
-    setLoading(false)
-  }, [quizId, navigate, isExpired])
+    fetchAssessment()
+  }, [quizId, navigate])
 
   if (loading || !result) {
     return (
@@ -63,9 +66,16 @@ export default function Assessment() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          flexDirection: 'column',
+          gap: theme.spacing.md,
         }}
       >
-        <div>Loading results...</div>
+        <div>Loading assessment results...</div>
+        {error && (
+          <div style={{ color: theme.colors.error, fontSize: theme.typography.fontSize.sm }}>
+            {error}
+          </div>
+        )}
       </div>
     )
   }
@@ -82,10 +92,11 @@ export default function Assessment() {
       {!showSummary ? (
         <AssessmentResults
           result={result}
+          quizName={quizName}
           onViewSummary={() => setShowSummary(true)}
         />
       ) : (
-        <AssessmentSummary result={result} />
+        <AssessmentSummary result={result} quizName={quizName} />
       )}
     </motion.div>
   )
