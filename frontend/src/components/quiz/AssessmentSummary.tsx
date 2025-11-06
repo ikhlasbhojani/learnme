@@ -219,6 +219,58 @@ export const AssessmentSummary: React.FC<AssessmentSummaryProps> = ({ result, qu
         </div>
       )}
 
+      {/* Topics to Review Section */}
+      {result.topicsToReview && result.topicsToReview.length > 0 && (
+        <div style={{ marginBottom: theme.spacing.xl }}>
+          <h3
+            style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              marginBottom: theme.spacing.md,
+              color: colors.text,
+            }}
+          >
+            Topics to Review
+          </h3>
+          <div
+            style={{
+              padding: theme.spacing.lg,
+              backgroundColor: colors.warning + '10',
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${colors.warning}30`,
+            }}
+          >
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.sm,
+                color: colors.gray[600],
+                marginBottom: theme.spacing.md,
+              }}
+            >
+              Based on your incorrect answers, focus on reviewing these specific topics:
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+              {result.topicsToReview.map((topic, index) => (
+                <span
+                  key={index}
+                  style={{
+                    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
+                    backgroundColor: colors.warning + '20',
+                    color: colors.warning,
+                    borderRadius: theme.borderRadius.md,
+                    fontSize: theme.typography.fontSize.sm,
+                    fontWeight: theme.typography.fontWeight.medium,
+                    border: `1px solid ${colors.warning}40`,
+                  }}
+                >
+                  {topic}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Suggested Improvements Section */}
       <div>
         <h3

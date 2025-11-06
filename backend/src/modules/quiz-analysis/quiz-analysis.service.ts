@@ -1,4 +1,5 @@
 import Quiz, { type IQuizDocument } from '../quiz/quiz.model'
+import ContentInput from '../content/content.model'
 import { QuizAnalysisAgent } from './agents/quiz-analysis.agent'
 import { AppError } from '../../utils/appError'
 
@@ -9,6 +10,7 @@ export interface QuizAnalysisResult {
   detailedAnalysis: string
   strengths: string[]
   improvementAreas: string[]
+  topicsToReview?: string[]
 }
 
 export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizAnalysisResult> {
@@ -26,8 +28,18 @@ export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizA
     throw new AppError('Quiz must be completed or expired before analysis', 400)
   }
 
-  // Answers are already an object in SQLite
+  // Answers are already an object
   const answers = quiz.answers || {}
+
+  // Fetch content input if available
+  let contentInput = null
+  let originalContent = null
+  if (quiz.contentInputId) {
+    contentInput = await ContentInput.findOne({ id: quiz.contentInputId, userId })
+    if (contentInput) {
+      originalContent = contentInput.content || contentInput.source
+    }
+  }
 
   // Initialize analysis agent
   const analysisAgent = new QuizAnalysisAgent()
@@ -37,6 +49,7 @@ export async function analyzeQuiz(userId: string, quizId: string): Promise<QuizA
     input: {
       quiz,
       answers,
+      originalContent,
     },
     metadata: {
       userId,

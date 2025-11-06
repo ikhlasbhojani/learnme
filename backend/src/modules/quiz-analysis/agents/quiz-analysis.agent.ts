@@ -8,6 +8,7 @@ export interface QuizAnalysisResult {
   detailedAnalysis: string
   strengths: string[]
   improvementAreas: string[]
+  topicsToReview?: string[]
 }
 
 export class QuizAnalysisAgent extends BaseAgent {
@@ -35,9 +36,12 @@ export class QuizAnalysisAgent extends BaseAgent {
   async run(context: AgentContext): Promise<AgentResult> {
     const quiz = context.input.quiz as IQuizDocument
     const answers = context.input.answers as Record<string, string>
+    const originalContent = context.input.originalContent as string | null | undefined
+    const userId = context.metadata?.userId
 
     try {
-      const analysis = await this.analyzeQuiz(quiz, answers)
+      await this.ensureAIProvider(userId)
+      const analysis = await this.analyzeQuiz(quiz, answers, originalContent, userId)
 
       return {
         output: analysis,
@@ -55,7 +59,9 @@ export class QuizAnalysisAgent extends BaseAgent {
 
   private async analyzeQuiz(
     quiz: IQuizDocument,
-    answers: Record<string, string>
+    answers: Record<string, string>,
+    originalContent: string | null | undefined,
+    userId?: string
   ): Promise<QuizAnalysisResult> {
     const totalQuestions = quiz.questions.length
     const answeredQuestions = Object.keys(answers).length
@@ -102,6 +108,22 @@ export class QuizAnalysisAgent extends BaseAgent {
     const correctCount = quiz.correctCount || 0
     const incorrectCount = quiz.incorrectCount || 0
 
+    // Extract topics from wrong questions using AI
+    const incorrectQuestions = answeredQuestionsList.filter(q => !q.isCorrect)
+    let topicsToReview: string[] = []
+    
+    if (incorrectQuestions.length > 0) {
+      try {
+        topicsToReview = await this.extractTopicsFromWrongQuestions(
+          incorrectQuestions,
+          originalContent,
+          userId
+        )
+      } catch (error) {
+        console.warn('Failed to extract topics from wrong questions:', error)
+      }
+    }
+
     // Build analysis prompt
     const prompt = this.buildAnalysisPrompt(
       score,
@@ -110,27 +132,100 @@ export class QuizAnalysisAgent extends BaseAgent {
       unansweredCount,
       difficultyStats,
       answeredQuestionsList,
-      totalQuestions
+      totalQuestions,
+      topicsToReview,
+      originalContent
     )
 
     try {
       const analysisText = await this.callModelDirect(prompt, {
-        input: context.input,
-        metadata: context.metadata,
+        input: { quiz, answers, originalContent },
+        metadata: { userId: quiz.userId, quizId: quiz.id },
       })
 
       // Parse the analysis
-      return this.parseAnalysis(analysisText, difficultyStats, score)
+      const analysis = this.parseAnalysis(analysisText, difficultyStats, score)
+      
+      // Add topics to review
+      return {
+        ...analysis,
+        topicsToReview,
+      }
     } catch (error) {
       // Fallback to basic analysis if AI parsing fails
-      return this.generateBasicAnalysis(
+      const basicAnalysis = this.generateBasicAnalysis(
         score,
         correctCount,
         incorrectCount,
         unansweredCount,
         difficultyStats
       )
+      return {
+        ...basicAnalysis,
+        topicsToReview,
+      }
     }
+  }
+
+  private async extractTopicsFromWrongQuestions(
+    incorrectQuestions: Array<{
+      question: string
+      userAnswer: string
+      correctAnswer: string
+      difficulty: string
+      isCorrect: boolean
+    }>,
+    originalContent: string | null | undefined,
+    userId?: string
+  ): Promise<string[]> {
+    if (incorrectQuestions.length === 0) {
+      return []
+    }
+
+    const questionsText = incorrectQuestions
+      .map((q, i) => `${i + 1}. ${q.question}\n   Your Answer: ${q.userAnswer}\n   Correct Answer: ${q.correctAnswer}`)
+      .join('\n\n')
+
+    const prompt = `Analyze the following questions that were answered incorrectly and identify the specific topics, concepts, or subject areas that the user needs to review.
+
+${originalContent ? `Original Content Context:\n${originalContent.substring(0, 2000)}${originalContent.length > 2000 ? '...' : ''}\n\n` : ''}
+
+Incorrect Questions:
+${questionsText}
+
+Based on these incorrect answers, identify 5-10 specific topics, concepts, or subject areas that the user should focus on reviewing. Be specific and actionable.
+
+Return ONLY a JSON array of topic strings, no other text:
+["Topic 1", "Topic 2", "Topic 3", ...]`
+
+    try {
+      const response = await this.callModelDirect(prompt, {
+        input: { originalContent },
+        metadata: userId ? { userId } : {},
+      })
+
+      // Clean and parse JSON
+      let cleaned = response.trim()
+      if (cleaned.startsWith('```')) {
+        cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+      }
+
+      const arrayMatch = cleaned.match(/\[[\s\S]*\]/)
+      if (arrayMatch) {
+        let jsonStr = arrayMatch[0]
+          .replace(/,(\s*[\]}])/g, '$1')
+          .replace(/[\x00-\x1F\x7F]/g, '')
+        
+        const parsed = JSON.parse(jsonStr)
+        if (Array.isArray(parsed)) {
+          return parsed.filter((t): t is string => typeof t === 'string' && t.trim().length > 0)
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to extract topics:', error)
+    }
+
+    return []
   }
 
   private buildAnalysisPrompt(
@@ -146,7 +241,9 @@ export class QuizAnalysisAgent extends BaseAgent {
       difficulty: string
       isCorrect: boolean
     }>,
-    totalQuestions: number
+    totalQuestions: number,
+    topicsToReview: string[],
+    originalContent: string | null | undefined
   ): string {
     // Calculate detailed statistics
     const incorrectQuestions = answeredQuestions.filter(q => !q.isCorrect)
@@ -184,32 +281,39 @@ ${Object.entries(incorrectByDifficulty)
 
 === SAMPLE QUESTIONS FOR ANALYSIS ===
 Incorrect Answers (showing patterns):
-${incorrectQuestions.slice(0, 8).map((q, i) => 
-  `${i + 1}. [${q.difficulty}] ${q.question.substring(0, 150)}${q.question.length > 150 ? '...' : ''}\n   ❌ Your Answer: ${q.userAnswer}\n   ✅ Correct Answer: ${q.correctAnswer}`
+${incorrectQuestions.slice(0, 10).map((q, i) => 
+  `${i + 1}. [${q.difficulty}] ${q.question}\n   ❌ Your Answer: ${q.userAnswer}\n   ✅ Correct Answer: ${q.correctAnswer}`
 ).join('\n\n')}
 
 ${correctQuestions.length > 0 ? `\nCorrect Answers (showing strengths):\n${correctQuestions.slice(0, 5).map((q, i) => 
-  `${i + 1}. [${q.difficulty}] ${q.question.substring(0, 150)}${q.question.length > 150 ? '...' : ''}\n   ✅ Correctly answered: ${q.userAnswer}`
+  `${i + 1}. [${q.difficulty}] ${q.question.substring(0, 200)}${q.question.length > 200 ? '...' : ''}\n   ✅ Correctly answered: ${q.userAnswer}`
 ).join('\n\n')}` : ''}
+
+${topicsToReview.length > 0 ? `\n=== IDENTIFIED TOPICS TO REVIEW ===\n${topicsToReview.map((t, i) => `${i + 1}. ${t}`).join('\n')}\n` : ''}
+
+${originalContent ? `\n=== ORIGINAL CONTENT CONTEXT ===\n${originalContent.substring(0, 3000)}${originalContent.length > 3000 ? '\n... (content truncated)' : ''}\n` : ''}
 
 === ANALYSIS REQUIREMENTS ===
 Provide a comprehensive analysis in this EXACT JSON format (NO trailing commas, valid JSON only):
 {
-  "performanceReview": "A detailed 3-4 paragraph comprehensive review covering: overall performance assessment, score interpretation, what the score means in context, key observations about the user's knowledge level, and an encouraging but honest evaluation. Be specific about what they did well and what needs work.",
-  "weakAreas": ["List specific weak areas. For each difficulty level where performance < 60%, include: 'Difficulty Level: [Easy/Normal/Hard/Master]' and specific topics/concepts that were missed. Be specific - e.g., 'Hard: Advanced concepts in [topic]', 'Normal: Application of [concept]'"],
-  "suggestions": ["Provide 5-7 actionable, specific suggestions. Each should be: 1) Specific to their weak areas, 2) Actionable (what to do, not just 'study more'), 3) Prioritized (most important first). Examples: 'Focus on practicing [specific topic] questions at [difficulty] level', 'Review [specific concept] before attempting harder questions', 'Take practice quizzes focusing on [weak area]'"],
-  "strengths": ["List 3-5 specific strengths. Be specific: 'Strong performance in [difficulty] level questions', 'Good understanding of [topic/concept]', 'Consistent accuracy in [area]'. Include positive reinforcement."],
-  "improvementAreas": ["List 3-5 specific areas needing improvement. Be detailed: 'Master difficulty questions - scored [X]%', 'Time management - [X] unanswered questions', 'Concept application in [specific area]'. Include specific metrics."],
-  "detailedAnalysis": "A comprehensive 4-5 paragraph detailed analysis covering: 1) Performance patterns and trends, 2) Specific analysis of incorrect answers (what patterns emerge, what concepts were misunderstood), 3) Difficulty progression analysis (how performance changes across difficulty levels), 4) Learning gaps identification (specific knowledge gaps), 5) Personalized learning path recommendations (what to study next, in what order, how to progress). Be very specific and detailed."
+  "performanceReview": "A detailed 4-5 paragraph comprehensive review covering: 1) Overall performance assessment with specific score interpretation, 2) What the score means in the context of the material covered, 3) Key observations about the user's knowledge level and understanding, 4) Specific patterns observed in correct vs incorrect answers, 5) An encouraging but honest evaluation with specific examples. Reference actual questions and topics where relevant.",
+  "weakAreas": ["List specific weak areas based on the incorrect questions. For each difficulty level where performance < 60%, include: 'Difficulty Level: [Easy/Normal/Hard/Master] - [specific topic/concept]'. Reference the identified topics to review. Be very specific - e.g., 'Hard: Advanced concepts in [specific topic from topics list]', 'Normal: Application of [specific concept]', 'Master: Understanding of [specific topic]'. Include at least 5-7 specific weak areas."],
+  "suggestions": ["Provide 7-10 actionable, specific suggestions. Each should be: 1) Specific to their weak areas and the topics identified, 2) Actionable (what to do, not just 'study more'), 3) Prioritized (most important first), 4) Reference specific topics from the topics to review list. Examples: 'Review [specific topic from topics list] - focus on [specific aspect]', 'Practice [specific topic] questions at [difficulty] level', 'Re-read the section on [specific topic] and take notes', 'Create flashcards for [specific concept]', 'Take another quiz focusing on [weak area]'. Be very specific and actionable."],
+  "strengths": ["List 4-6 specific strengths. Be specific: 'Strong performance in [difficulty] level questions about [specific topic]', 'Good understanding of [topic/concept] - answered [X] questions correctly', 'Consistent accuracy in [area] - [specific examples]', 'Excellent grasp of [concept] as shown by correct answers to [specific questions]'. Include positive reinforcement with specific examples."],
+  "improvementAreas": ["List 5-7 specific areas needing improvement. Be detailed: 'Master difficulty questions about [specific topic] - scored [X]%', 'Time management - [X] unanswered questions', 'Concept application in [specific area] - missed [X] questions', 'Understanding of [specific topic] - got [X] out of [Y] questions wrong', 'Application of [concept] in practical scenarios'. Include specific metrics and reference topics."],
+  "detailedAnalysis": "A comprehensive 6-8 paragraph detailed analysis covering: 1) Performance patterns and trends with specific statistics, 2) Deep analysis of incorrect answers (what patterns emerge, what concepts were misunderstood, why the wrong answers were chosen), 3) Difficulty progression analysis (how performance changes across difficulty levels, where the user struggles most), 4) Learning gaps identification (specific knowledge gaps based on wrong questions and topics), 5) Topic-specific analysis (which topics from the identified list need the most attention and why), 6) Personalized learning path recommendations (what to study next, in what order, how to progress, which topics to prioritize), 7) Study strategy recommendations (how to approach reviewing the weak areas). Be very specific, reference actual questions, topics, and provide actionable insights."
 }
 
 === CRITICAL INSTRUCTIONS ===
-1. Be SPECIFIC - mention actual difficulty levels, topics, and concepts
-2. Be ACTIONABLE - every suggestion should tell them WHAT to do, not just what's wrong
+1. Be SPECIFIC - mention actual difficulty levels, topics from the topics list, and concepts from the questions
+2. Be ACTIONABLE - every suggestion should tell them WHAT to do, not just what's wrong. Reference specific topics to review.
 3. Be ENCOURAGING - highlight strengths while being honest about weaknesses
-4. Be DETAILED - the detailedAnalysis should be comprehensive (4-5 paragraphs)
-5. Use the actual data provided - reference specific scores, difficulty levels, and question patterns
-6. Return ONLY valid JSON - no markdown, no code blocks, no extra text
+4. Be DETAILED - the detailedAnalysis should be comprehensive (6-8 paragraphs), performanceReview should be 4-5 paragraphs
+5. Use the actual data provided - reference specific scores, difficulty levels, question patterns, and topics
+6. Reference the identified topics to review throughout your analysis
+7. Analyze WHY questions were wrong - what concepts were misunderstood
+8. Provide topic-specific recommendations based on the topics list
+9. Return ONLY valid JSON - no markdown, no code blocks, no extra text
 
 Generate the detailed analysis now:`
   }
@@ -269,7 +373,24 @@ Generate the detailed analysis now:`
               detailedAnalysis: parsed.detailedAnalysis || '',
             }
           } catch (finalError) {
-            console.warn('Aggressive JSON clean also failed, using basic analysis')
+            console.warn('Aggressive JSON clean also failed, trying object extraction:', finalError)
+            // Last resort: try to extract and fix the JSON object
+            try {
+              const fixed = this.extractAndFixJsonObject(jsonStr)
+              if (fixed) {
+                const parsed = JSON.parse(fixed)
+                return {
+                  performanceReview: parsed.performanceReview || '',
+                  weakAreas: Array.isArray(parsed.weakAreas) ? parsed.weakAreas : [],
+                  suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+                  strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+                  improvementAreas: Array.isArray(parsed.improvementAreas) ? parsed.improvementAreas : [],
+                  detailedAnalysis: parsed.detailedAnalysis || '',
+                }
+              }
+            } catch {
+              console.warn('Object extraction also failed, using basic analysis')
+            }
           }
         }
       }

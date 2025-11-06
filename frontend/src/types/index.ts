@@ -33,6 +33,8 @@ export interface Question {
   correctAnswer: string
   difficulty: 'Easy' | 'Normal' | 'Hard' | 'Master'
   explanation: string | null
+  codeSnippet?: string | null
+  imageReference?: string | null
 }
 
 // QuizInstance Entity
@@ -67,6 +69,10 @@ export interface AssessmentResult {
   performanceReview: string
   weakAreas: string[]
   suggestions: string[]
+  strengths?: string[]
+  improvementAreas?: string[]
+  detailedAnalysis?: string
+  topicsToReview?: string[]
   generatedAt: Date
 }
 

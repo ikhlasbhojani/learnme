@@ -17,6 +17,8 @@ export interface IQuizQuestion {
   correctAnswer: string
   difficulty: QuizDifficulty
   explanation?: string | null
+  codeSnippet?: string | null
+  imageReference?: string | null
 }
 
 export interface IQuizAnalysis {
@@ -26,6 +28,7 @@ export interface IQuizAnalysis {
   detailedAnalysis?: string
   strengths?: string[]
   improvementAreas?: string[]
+  topicsToReview?: string[]
   analyzedAt?: Date | null
 }
 
