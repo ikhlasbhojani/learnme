@@ -81,12 +81,67 @@ export class OpenAIProvider implements AIProvider {
       }
       
       // Try to find JSON object or array in the text
-      const jsonMatch = jsonText.match(/(\[[\s\S]*\]|{[\s\S]*})/)
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0])
+      // First try to find complete JSON
+      const completeJsonMatch = jsonText.match(/(\[[\s\S]*\]|{[\s\S]*})/)
+      if (completeJsonMatch) {
+        try {
+          return JSON.parse(completeJsonMatch[0])
+        } catch (e) {
+          // If complete match fails, try to repair
+          console.warn('Complete JSON parse failed, attempting repair')
+        }
       }
       
-      return JSON.parse(jsonText)
+      // Try to extract and repair incomplete JSON
+      // For arrays, try to find complete objects
+      if (jsonText.trim().startsWith('[')) {
+        const arrayStart = jsonText.indexOf('[')
+        let bracketCount = 0
+        let braceCount = 0
+        let inString = false
+        let escapeNext = false
+        
+        for (let i = arrayStart; i < jsonText.length; i++) {
+          const char = jsonText[i]
+          
+          if (escapeNext) {
+            escapeNext = false
+            continue
+          }
+          
+          if (char === '\\') {
+            escapeNext = true
+            continue
+          }
+          
+          if (char === '"' && !escapeNext) {
+            inString = !inString
+            continue
+          }
+          
+          if (!inString) {
+            if (char === '[') bracketCount++
+            if (char === ']') bracketCount--
+            if (char === '{') braceCount++
+            if (char === '}') braceCount--
+            
+            if (bracketCount === 0 && braceCount === 0 && i > arrayStart) {
+              try {
+                return JSON.parse(jsonText.substring(arrayStart, i + 1))
+              } catch (e) {
+                break
+              }
+            }
+          }
+        }
+      }
+      
+      // Final attempt - try parsing the whole text
+      try {
+        return JSON.parse(jsonText)
+      } catch (e) {
+        throw new Error(`Failed to parse JSON: ${e instanceof Error ? e.message : 'Unknown error'}`)
+      }
     } catch (error) {
       throw new Error(`OpenAI API error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

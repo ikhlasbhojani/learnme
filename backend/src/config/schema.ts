@@ -17,11 +17,31 @@ export function initializeSchema(db: Database.Database): void {
       email TEXT UNIQUE NOT NULL,
       passwordHash TEXT NOT NULL,
       themePreference TEXT CHECK(themePreference IN ('light', 'dark', 'blue', 'green')),
+      aiProvider TEXT,
+      aiModel TEXT,
+      aiApiKey TEXT,
       lastLoginAt TEXT,
       createdAt TEXT NOT NULL DEFAULT (datetime('now')),
       updatedAt TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `)
+  
+  // Migration: Add AI config columns if they don't exist (for existing databases)
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN aiProvider TEXT`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN aiModel TEXT`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
+  try {
+    db.exec(`ALTER TABLE users ADD COLUMN aiApiKey TEXT`)
+  } catch (e) {
+    // Column already exists, ignore
+  }
 
   // Create index on email for faster lookups
   db.exec(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`)

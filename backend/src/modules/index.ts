@@ -9,7 +9,8 @@ const router = Router()
 
 router.use('/setup', setupRoutes)
 router.use('/auth', authRoutes)
-router.use('/content-inputs', contentRoutes)
+router.use('/content', contentRoutes)
+router.use('/content-inputs', contentRoutes) // Legacy support
 router.use('/quizzes', quizRoutes)
 router.use('/quiz-generation', quizGenerationRoutes)
 

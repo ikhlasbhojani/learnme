@@ -13,6 +13,8 @@ import { QuestionCount } from '../components/quiz/QuestionCount'
 import { QuizConfiguration } from '../types'
 import { theme, getThemeColors } from '../styles/theme'
 import { useTheme } from '../contexts/ThemeContext'
+import { Maximize2, Minimize2 } from 'lucide-react'
+import { Button } from '../components/common/Button'
 
 export default function Quiz() {
   const { isDark } = useTheme()
@@ -411,18 +413,20 @@ export default function Quiz() {
   useEffect(() => {
     if (quiz && quiz.status === 'in-progress' && !quizStartedRef.current && isSupported) {
       quizStartedRef.current = true
-      // Try to enter fullscreen, but don't block quiz if it fails
+      // Try to enter fullscreen automatically when quiz starts
+      // This will work if there was a recent user gesture (like clicking "Start Quiz")
       enterFullscreen().catch((err) => {
+        // If it fails due to permission/user gesture, show error but don't block quiz
         const errorMsg =
           err instanceof Error
             ? err.message.includes('not supported')
               ? 'Fullscreen mode is not supported. Quiz will continue in normal mode.'
-              : err.message.includes('user gesture')
-              ? 'Fullscreen requires a user gesture. Quiz will continue in normal mode.'
-              : 'Fullscreen permission was denied. Quiz will continue in normal mode.'
-            : 'Fullscreen permission was denied. Quiz will continue in normal mode.'
+              : err.message.includes('user gesture') || err.message.includes('permission')
+              ? 'Fullscreen requires a user gesture. Click the fullscreen button to enter fullscreen mode.'
+              : 'Fullscreen permission was denied. Click the fullscreen button to enter fullscreen mode.'
+            : 'Fullscreen permission was denied. Click the fullscreen button to enter fullscreen mode.'
         setFullscreenError(errorMsg)
-        // Don't navigate away - just show warning and continue quiz
+        // Don't block quiz - just show warning
         console.warn('Fullscreen failed, continuing quiz in normal mode:', err)
       })
     }
@@ -499,6 +503,13 @@ export default function Quiz() {
       setFullscreenError(fullscreenErrorState)
     }
   }, [fullscreenErrorState])
+
+  // Clear fullscreen error when fullscreen is successfully entered
+  useEffect(() => {
+    if (isFullscreen && fullscreenError) {
+      setFullscreenError(null)
+    }
+  }, [isFullscreen, fullscreenError])
 
   // Handle fullscreen exit (per FR-020, FR-021)
   useEffect(() => {
@@ -604,6 +615,27 @@ export default function Quiz() {
     
     // Move to next question
     await nextQuestion()
+  }
+
+  const handleEnterFullscreen = async () => {
+    try {
+      await enterFullscreen()
+      // Error will be cleared by the useEffect that watches isFullscreen
+    } catch (err) {
+      const errorMsg =
+        err instanceof Error
+          ? err.message.includes('not supported')
+            ? 'Fullscreen mode is not supported in your browser.'
+            : err.message.includes('user gesture') || err.message.includes('permission')
+            ? 'Fullscreen permission was denied. Please allow fullscreen in your browser settings or try again.'
+            : 'Failed to enter fullscreen mode. Please try again.'
+          : 'Failed to enter fullscreen mode. Please try again.'
+      setFullscreenError(errorMsg)
+      // Auto-clear error after 5 seconds
+      setTimeout(() => {
+        setFullscreenError((prev) => (prev === errorMsg ? null : prev))
+      }, 5000)
+    }
   }
 
   const handleFinish = async () => {
@@ -791,9 +823,10 @@ export default function Quiz() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
+                gap: theme.spacing.md,
               }}
             >
-              <div>
+              <div style={{ flex: 1 }}>
                 <QuestionCount
                   current={currentQuestionIndex + 1}
                   total={quiz.questions.length}
@@ -819,7 +852,27 @@ export default function Quiz() {
                   />
                 </div>
               </div>
-              <Timer timeRemaining={timeRemaining} totalTime={quiz.configuration.timeDuration} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.md }}>
+                <Timer timeRemaining={timeRemaining} totalTime={quiz.configuration.timeDuration} />
+                {isSupported && (
+                  <Button
+                    variant="outline"
+                    size="md"
+                    onClick={isFullscreen ? exitFullscreen : handleEnterFullscreen}
+                    title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                    style={{
+                      minWidth: 'auto',
+                      padding: theme.spacing.sm,
+                    }}
+                  >
+                    {isFullscreen ? (
+                      <Minimize2 size={18} />
+                    ) : (
+                      <Maximize2 size={18} />
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
 

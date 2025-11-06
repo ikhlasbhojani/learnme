@@ -114,7 +114,10 @@ export class QuizAnalysisAgent extends BaseAgent {
     )
 
     try {
-      const analysisText = await this.aiProvider.generateText(prompt)
+      const analysisText = await this.callModelDirect(prompt, {
+        input: context.input,
+        metadata: context.metadata,
+      })
 
       // Parse the analysis
       return this.parseAnalysis(analysisText, difficultyStats, score)

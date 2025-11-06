@@ -2,10 +2,12 @@ import { AIProvider, AIModelConfig } from './ai-provider.interface'
 import { OpenAIProvider } from './providers/openai.provider'
 
 export function createAIProvider(config: AIModelConfig): AIProvider {
-  // All providers use OpenAI-compatible API
-  // If baseUrl is provided, it's a custom/external provider
-  // Otherwise, it's OpenAI's official API
-  return new OpenAIProvider(config.apiKey, config.model, config.baseUrl)
+  // All providers use OpenAI-compatible API via external client
+  // Find the provider's baseUrl from AVAILABLE_PROVIDERS
+  const provider = AVAILABLE_PROVIDERS.find(p => p.id === config.provider)
+  const baseUrl = provider?.baseUrl || config.baseUrl
+  
+  return new OpenAIProvider(config.apiKey, config.model, baseUrl)
 }
 
 export const AVAILABLE_PROVIDERS = [
@@ -21,59 +23,52 @@ export const AVAILABLE_PROVIDERS = [
     baseUrl: undefined, // Use OpenAI's default
   },
   {
-    id: 'custom',
-    name: 'Custom / External LLM',
+    id: 'gemini',
+    name: 'Google Gemini',
     models: [
-      { id: 'custom', name: 'Enter model name' },
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash' },
+      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
     ],
-    baseUrl: 'custom', // Requires user input
-  },
-]
-
-// Common external LLM providers that are OpenAI-compatible
-// These providers expose OpenAI-compatible APIs and can be used with the OpenAI SDK
-export const EXTERNAL_PROVIDERS = [
-  {
-    id: 'groq',
-    name: 'Groq',
-    baseUrl: 'https://api.groq.com/openai/v1',
-    models: [
-      { id: 'llama-3.1-70b-versatile', name: 'Llama 3.1 70B' },
-      { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B' },
-      { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
-      { id: 'gemma-7b-it', name: 'Gemma 7B' },
-    ],
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
   },
   {
-    id: 'together',
-    name: 'Together AI',
-    baseUrl: 'https://api.together.xyz/v1',
+    id: 'grok',
+    name: 'Grok (xAI)',
     models: [
-      { id: 'meta-llama/Llama-3-70b-chat-hf', name: 'Llama 3 70B' },
-      { id: 'meta-llama/Llama-3-8b-chat-hf', name: 'Llama 3 8B' },
-      { id: 'mistralai/Mixtral-8x7B-Instruct-v0.1', name: 'Mixtral 8x7B' },
-      { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B' },
+      { id: 'grok-beta', name: 'Grok Beta' },
+      { id: 'grok-2', name: 'Grok 2' },
     ],
+    baseUrl: 'https://api.x.ai/v1',
   },
   {
-    id: 'openrouter',
-    name: 'OpenRouter',
-    baseUrl: 'https://openrouter.ai/api/v1',
+    id: 'claude',
+    name: 'Anthropic Claude',
     models: [
-      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet' },
-      { id: 'google/gemini-pro-1.5', name: 'Gemini Pro 1.5' },
-      { id: 'meta-llama/llama-3.1-70b-instruct', name: 'Llama 3.1 70B' },
-      { id: 'openai/gpt-4o', name: 'GPT-4o' },
+      { id: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
+      { id: 'claude-3-opus-20240229', name: 'Claude 3 Opus' },
+      { id: 'claude-3-haiku-20240307', name: 'Claude 3 Haiku' },
     ],
+    baseUrl: 'https://api.anthropic.com/v1',
   },
   {
-    id: 'perplexity',
-    name: 'Perplexity',
-    baseUrl: 'https://api.perplexity.ai',
+    id: 'deepseek',
+    name: 'DeepSeek',
     models: [
-      { id: 'llama-3.1-sonar-large-128k-online', name: 'Sonar Large Online' },
-      { id: 'llama-3.1-sonar-small-128k-online', name: 'Sonar Small Online' },
+      { id: 'deepseek-chat', name: 'DeepSeek Chat' },
+      { id: 'deepseek-coder', name: 'DeepSeek Coder' },
     ],
+    baseUrl: 'https://api.deepseek.com/v1',
+  },
+  {
+    id: 'mistral',
+    name: 'Mistral AI',
+    models: [
+      { id: 'mistral-large-latest', name: 'Mistral Large' },
+      { id: 'mistral-medium-latest', name: 'Mistral Medium' },
+      { id: 'mistral-small-latest', name: 'Mistral Small' },
+    ],
+    baseUrl: 'https://api.mistral.ai/v1',
   },
 ]
 

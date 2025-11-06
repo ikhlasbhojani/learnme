@@ -117,7 +117,8 @@ export default function Home() {
 
   const handleURLSubmit = (url: string) => {
     setShowURLModal(false)
-    navigate('/generate-quiz?url=' + encodeURIComponent(url))
+    // Navigate to documentation topic selection page first
+    navigate('/documentation-topics?url=' + encodeURIComponent(url))
   }
 
   const handleFileSelect = (file: File) => {
@@ -350,14 +351,16 @@ export default function Home() {
               <p className={`text-base mb-6 ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
                 Paste a web link to learning content. We'll fetch and process it for quiz generation.
               </p>
-              <Button
-                variant="outline"
-                size="md"
+              <button
                 onClick={() => setShowURLModal(true)}
-                className="w-full"
+                className={`w-full px-4 py-2.5 rounded-lg font-medium text-sm transition-all duration-200 ${
+                  isDark
+                    ? 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d] hover:text-white active:bg-[#161b22]'
+                    : 'bg-[#f6f8fa] text-[#24292f] hover:bg-[#eaeef2] hover:text-[#24292f] active:bg-[#d0d7de]'
+                }`}
               >
                 Add URL
-              </Button>
+              </button>
             </motion.div>
           </div>
         </div>

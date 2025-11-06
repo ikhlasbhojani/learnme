@@ -3,7 +3,7 @@ export interface AIProvider {
   generateJSON(prompt: string): Promise<any>
 }
 
-export type AIProviderType = 'openai' | 'custom'
+export type AIProviderType = 'openai' | 'gemini' | 'grok' | 'claude' | 'deepseek' | 'mistral'
 
 export interface AIModelConfig {
   provider: AIProviderType

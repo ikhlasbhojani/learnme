@@ -20,7 +20,7 @@ export interface AgentTool {
 }
 
 export abstract class BaseAgent {
-  protected aiProvider: AIProvider
+  protected aiProvider: AIProvider | null = null
   protected tools: AgentTool[] = []
   protected name: string
   protected instructions: string
@@ -28,12 +28,21 @@ export abstract class BaseAgent {
   constructor(name: string, instructions: string) {
     this.name = name
     this.instructions = instructions
-    this.initializeAIProvider()
+    // AI provider will be initialized when needed with userId
   }
 
-  protected initializeAIProvider() {
-    const config = getAIConfig()
+  protected async initializeAIProvider(userId: string) {
+    const config = await getAIConfig(userId)
+    if (!config) {
+      throw new Error('AI configuration not found. Please set up your API key in the setup page.')
+    }
     this.aiProvider = createAIProvider(config)
+  }
+
+  protected async ensureAIProvider(userId: string) {
+    if (!this.aiProvider) {
+      await this.initializeAIProvider(userId)
+    }
   }
 
   addTool(tool: AgentTool) {
@@ -42,8 +51,49 @@ export abstract class BaseAgent {
 
   protected async callModel(prompt: string, context: AgentContext): Promise<string> {
     try {
+      const userId = context.metadata?.userId
+      if (!userId) {
+        throw new Error('User ID is required in context metadata')
+      }
+      await this.ensureAIProvider(userId)
+      if (!this.aiProvider) {
+        throw new Error('AI provider not initialized')
+      }
       const fullPrompt = this.buildPrompt(prompt, context)
       return await this.aiProvider.generateText(fullPrompt)
+    } catch (error) {
+      throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  protected async callModelForJSON(prompt: string, context: AgentContext): Promise<any> {
+    try {
+      const userId = context.metadata?.userId
+      if (!userId) {
+        throw new Error('User ID is required in context metadata')
+      }
+      await this.ensureAIProvider(userId)
+      if (!this.aiProvider) {
+        throw new Error('AI provider not initialized')
+      }
+      return await this.aiProvider.generateJSON(prompt)
+    } catch (error) {
+      throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  protected async callModelDirect(prompt: string, context: AgentContext): Promise<string> {
+    // Direct call without building full prompt - use when prompt is already complete
+    try {
+      const userId = context.metadata?.userId
+      if (!userId) {
+        throw new Error('User ID is required in context metadata')
+      }
+      await this.ensureAIProvider(userId)
+      if (!this.aiProvider) {
+        throw new Error('AI provider not initialized')
+      }
+      return await this.aiProvider.generateText(prompt)
     } catch (error) {
       throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }

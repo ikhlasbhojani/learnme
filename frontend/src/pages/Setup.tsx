@@ -12,13 +12,6 @@ interface Provider {
   baseUrl?: string
 }
 
-interface ExternalProvider {
-  id: string
-  name: string
-  baseUrl: string
-  models: Array<{ id: string; name: string }>
-}
-
 interface SetupStatus {
   hasApiKey: boolean
   isConfigured: boolean
@@ -28,21 +21,17 @@ interface SetupStatus {
     provider: string
     model: string
     apiKey?: string
-    baseUrl?: string
   }
   availableProviders?: Provider[]
-  externalProviders?: ExternalProvider[]
 }
 
 export default function Setup() {
   const [provider, setProvider] = useState('openai')
   const [model, setModel] = useState('gpt-4o-mini')
   const [apiKey, setApiKey] = useState('')
-  const [baseUrl, setBaseUrl] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState<SetupStatus | null>(null)
-  const [selectedExternalProvider, setSelectedExternalProvider] = useState<string>('')
   const [isLoadingStatus, setIsLoadingStatus] = useState(true)
   const navigate = useNavigate()
 
@@ -55,43 +44,10 @@ export default function Setup() {
     if (status?.availableProviders) {
       const selectedProvider = status.availableProviders.find((p) => p.id === provider)
       if (selectedProvider && selectedProvider.models.length > 0) {
-        if (provider === 'custom') {
-          setModel('') // Clear for custom input
-          // Don't clear baseUrl here - let external provider useEffect handle it
-        } else {
-          setModel(selectedProvider.models[0].id)
-          setBaseUrl('') // Clear baseUrl when switching to OpenAI
-        }
+        setModel(selectedProvider.models[0].id)
       }
-    }
-    
-    // Reset external provider selection when switching away from custom
-    if (provider !== 'custom') {
-      setSelectedExternalProvider('')
-      setBaseUrl('') // Clear baseUrl when switching to OpenAI
     }
   }, [provider, status])
-  
-  // Handle external provider selection - auto-populate baseUrl
-  useEffect(() => {
-    if (selectedExternalProvider && status?.externalProviders) {
-      const extProvider = status.externalProviders.find((p) => p.id === selectedExternalProvider)
-      if (extProvider) {
-        // Auto-populate baseUrl when external provider is selected
-        setBaseUrl(extProvider.baseUrl)
-        if (extProvider.models.length > 0) {
-          setModel(extProvider.models[0].id)
-        }
-      }
-    } else if (provider === 'custom' && !selectedExternalProvider && baseUrl) {
-      // Clear baseUrl when external provider is deselected, but only if it matches a known provider
-      // This allows users to keep custom URLs they've entered
-      const isKnownProviderUrl = status?.externalProviders?.some(p => p.baseUrl === baseUrl)
-      if (isKnownProviderUrl) {
-        setBaseUrl('')
-      }
-    }
-  }, [selectedExternalProvider, status, provider])
 
   const checkStatus = async () => {
     try {
@@ -101,22 +57,19 @@ export default function Setup() {
       if (data.hasApiKey && data.config) {
         setProvider(data.config.provider || 'openai')
         setModel(data.config.model || 'gpt-4o-mini')
-        setBaseUrl(data.config.baseUrl || '')
-        // Check if this matches an external provider
-        if (data.config.baseUrl && data.externalProviders) {
-          const matchingProvider = data.externalProviders.find(
-            (p) => p.baseUrl === data.config?.baseUrl
-          )
-          if (matchingProvider) {
-            setSelectedExternalProvider(matchingProvider.id)
-          }
-        }
-      } else if (data.hasApiKey) {
-        // Legacy config - already configured
-        navigate('/home')
+        // Don't populate API key field for security (user can re-enter if needed)
+        // But show the form so they can update it
+      } else if (data.hasApiKey && !data.config) {
+        // Legacy config - has key but no config, show form to configure
+        // Don't redirect, allow user to set up provider/model
       }
-    } catch (err) {
+      // If no API key, form will show empty and user can enter it
+    } catch (err: any) {
       console.error('Failed to check setup status:', err)
+      // If unauthorized, redirect to login
+      if (err?.status === 401 || err?.response?.status === 401) {
+        navigate('/login', { replace: true })
+      }
     } finally {
       setIsLoadingStatus(false)
     }
@@ -132,24 +85,28 @@ export default function Setup() {
         provider,
         model,
         apiKey: apiKey.trim(),
-        ...(baseUrl.trim() && { baseUrl: baseUrl.trim() }),
       })
       // Success - redirect to home
       navigate('/home', { replace: true })
     } catch (err: any) {
+      // If unauthorized, redirect to login
+      if (err?.status === 401 || err?.response?.status === 401) {
+        navigate('/login', { replace: true })
+        return
+      }
       setError(err.message || 'Failed to save configuration. Please try again.')
       setLoading(false)
     }
   }
 
   const selectedProvider = status?.availableProviders?.find((p) => p.id === provider)
-  const selectedExternal = status?.externalProviders?.find((p) => p.id === selectedExternalProvider)
   const providerLinks: Record<string, string> = {
     openai: 'https://platform.openai.com/api-keys',
-    groq: 'https://console.groq.com/keys',
-    together: 'https://api.together.xyz/settings/api-keys',
-    openrouter: 'https://openrouter.ai/keys',
-    perplexity: 'https://www.perplexity.ai/settings/api',
+    gemini: 'https://makersuite.google.com/app/apikey',
+    grok: 'https://x.ai/api',
+    claude: 'https://console.anthropic.com/settings/keys',
+    deepseek: 'https://platform.deepseek.com/api_keys',
+    mistral: 'https://console.mistral.ai/api-keys',
   }
 
   if (isLoadingStatus) {
@@ -199,34 +156,22 @@ export default function Setup() {
             </p>
           </div>
 
-          {provider === 'openai' && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>What you need:</strong> An OpenAI API key from OpenAI Platform.
-                <br />
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200">
+              <strong>What you need:</strong> An API key from your selected provider.
+              <br />
+              {providerLinks[provider] && (
                 <a
-                  href={providerLinks.openai}
+                  href={providerLinks[provider]}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="underline hover:text-blue-600 dark:hover:text-blue-300 mt-1 inline-block"
                 >
-                  Get your OpenAI API key here
+                  Get your {selectedProvider?.name || provider} API key here
                 </a>
-              </p>
-            </div>
-          )}
-
-          {provider === 'custom' && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>External Provider:</strong> Choose a pre-configured provider below or enter a custom OpenAI-compatible API endpoint.
-                <br />
-                <span className="text-xs mt-1 block">
-                  All providers must support the OpenAI-compatible API format.
-                </span>
-              </p>
-            </div>
-          )}
+              )}
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -252,33 +197,6 @@ export default function Setup() {
               </select>
             </div>
 
-            {provider === 'custom' && status?.externalProviders && status.externalProviders.length > 0 && (
-              <div>
-                <label
-                  htmlFor="externalProvider"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Pre-configured Provider (Optional)
-                </label>
-                <select
-                  id="externalProvider"
-                  value={selectedExternalProvider}
-                  onChange={(e) => setSelectedExternalProvider(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select a provider or enter custom base URL below...</option>
-                  {status.externalProviders.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  Choose from popular providers (Groq, Together AI, OpenRouter, Perplexity) or enter a custom endpoint below
-                </p>
-              </div>
-            )}
-
             <div>
               <label
                 htmlFor="model"
@@ -287,49 +205,19 @@ export default function Setup() {
                 Model
                 <span className="text-red-500 ml-1">*</span>
               </label>
-              {provider === 'custom' ? (
-                <>
-                  {selectedExternal ? (
-                    <select
-                      id="model"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      required
-                    >
-                      {selectedExternal.models.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <Input
-                      id="model"
-                      type="text"
-                      value={model}
-                      onChange={(e) => setModel(e.target.value)}
-                      placeholder="Enter your model name (e.g., llama-3.1-70b)"
-                      required
-                      className="w-full"
-                    />
-                  )}
-                </>
-              ) : (
-                <select
-                  id="model"
-                  value={model}
-                  onChange={(e) => setModel(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  {selectedProvider?.models.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              )}
+              <select
+                id="model"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                {selectedProvider?.models.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -346,12 +234,8 @@ export default function Setup() {
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder={
-                  selectedExternal
-                    ? `Enter your ${selectedExternal.name} API Key`
-                    : selectedProvider
+                  selectedProvider
                     ? `Enter your ${selectedProvider.name} API Key`
-                    : provider === 'openai'
-                    ? 'Enter your OpenAI API Key'
                     : 'Enter your API Key'
                 }
                 required
@@ -359,51 +243,13 @@ export default function Setup() {
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 This key is stored locally and only used for quiz generation.
-                {selectedExternal && providerLinks[selectedExternal.id] && (
-                  <>
-                    {' '}
-                    <a
-                      href={providerLinks[selectedExternal.id]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-gray-700 dark:hover:text-gray-300"
-                    >
-                      Get your API key
-                    </a>
-                  </>
+                {status?.hasApiKey && (
+                  <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
+                    ⚠️ An API key is already configured. Enter a new key to update it.
+                  </span>
                 )}
               </p>
             </div>
-
-            {provider === 'custom' && (
-              <div>
-                <label
-                  htmlFor="baseUrl"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-                >
-                  Base URL
-                  <span className="text-red-500 ml-1">*</span>
-                </label>
-                <Input
-                  id="baseUrl"
-                  type="text"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder={
-                    selectedExternal
-                      ? selectedExternal.baseUrl
-                      : 'https://api.example.com/v1'
-                  }
-                  required
-                  className="w-full"
-                />
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {selectedExternal
-                    ? `Auto-filled from ${selectedExternal.name}. You can edit this if needed.`
-                    : 'Required for custom OpenAI-compatible APIs (e.g., local LLM servers)'}
-                </p>
-              </div>
-            )}
 
             {error && (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
@@ -413,7 +259,7 @@ export default function Setup() {
 
             <Button
               type="submit"
-              disabled={loading || !apiKey.trim() || !model || (provider === 'custom' && !baseUrl.trim())}
+              disabled={loading || !apiKey.trim() || !model}
               className="w-full"
             >
               {loading ? 'Saving...' : 'Continue'}

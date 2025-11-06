@@ -41,7 +41,7 @@ export class QuizGenerationAgent extends BaseAgent {
     }
 
     const maxQuestions = Math.min(numberOfQuestions || 100, 100)
-    const questions = await this.generateQuestions(content, difficulty, maxQuestions)
+    const questions = await this.generateQuestions(content, difficulty, maxQuestions, context)
 
     return {
       output: {
@@ -60,7 +60,8 @@ export class QuizGenerationAgent extends BaseAgent {
   private async generateQuestions(
     content: string,
     difficulty: DifficultyLevel,
-    count: number
+    count: number,
+    context: AgentContext
   ): Promise<GeneratedQuestion[]> {
     const difficultyMapping: Record<DifficultyLevel, 'Easy' | 'Normal' | 'Hard' | 'Master'> = {
       easy: 'Easy',
@@ -73,7 +74,10 @@ export class QuizGenerationAgent extends BaseAgent {
     const prompt = this.buildQuizGenerationPrompt(content, difficulty, count)
 
     try {
-      const generatedText = await this.aiProvider.generateText(prompt)
+      const generatedText = await this.callModelDirect(prompt, {
+        input: { content, difficulty, count },
+        metadata: context.metadata,
+      })
 
       // Parse the generated questions
       const questions = this.parseQuestions(generatedText, mappedDifficulty)
@@ -86,7 +90,8 @@ export class QuizGenerationAgent extends BaseAgent {
           content,
           difficulty,
           additionalCount,
-          questions
+          questions,
+          context
         )
         questions.push(...additionalQuestions)
       }
@@ -145,19 +150,137 @@ Generate the questions now:`
     difficulty: 'Easy' | 'Normal' | 'Hard' | 'Master'
   ): GeneratedQuestion[] {
     try {
-      // Try to extract JSON from the response
-      const jsonMatch = generatedText.match(/\[[\s\S]*\]/)
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        if (Array.isArray(parsed)) {
-          return parsed.map((q: any, index: number) => ({
-            id: `q-${Date.now()}-${index}`,
-            text: q.text || q.question || '',
-            options: Array.isArray(q.options) ? q.options : [],
-            correctAnswer: q.correctAnswer || q.answer || '',
-            difficulty,
-            explanation: q.explanation || null,
-          }))
+      // Clean the text - remove markdown code blocks
+      let cleanedText = generatedText.trim()
+      if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+      }
+
+      // Try to find JSON array - be more flexible with matching
+      // Look for array start and try to extract complete objects
+      const arrayStartMatch = cleanedText.match(/\[[\s\S]*/)
+      if (arrayStartMatch) {
+        let jsonCandidate = arrayStartMatch[0]
+        
+        // Helper function to count nested brackets properly
+        const findCompleteArray = (text: string): string | null => {
+          let bracketCount = 0
+          let braceCount = 0
+          let inString = false
+          let escapeNext = false
+          
+          for (let i = 0; i < text.length; i++) {
+            const char = text[i]
+            
+            if (escapeNext) {
+              escapeNext = false
+              continue
+            }
+            
+            if (char === '\\') {
+              escapeNext = true
+              continue
+            }
+            
+            if (char === '"' && !escapeNext) {
+              inString = !inString
+              continue
+            }
+            
+            if (!inString) {
+              if (char === '[') bracketCount++
+              if (char === ']') bracketCount--
+              if (char === '{') braceCount++
+              if (char === '}') braceCount--
+              
+              // If we've closed all brackets and braces, we have a complete array
+              if (bracketCount === 0 && braceCount === 0 && i > 0) {
+                return text.substring(0, i + 1)
+              }
+            }
+          }
+          
+          // If array is incomplete, try to extract complete objects
+          if (bracketCount > 0 || braceCount > 0) {
+            // Find all complete question objects using a more sophisticated approach
+            const completeObjects: string[] = []
+            let currentObject = ''
+            let objectBraceCount = 0
+            let objectInString = false
+            let objectEscapeNext = false
+            
+            for (let i = 0; i < text.length; i++) {
+              const char = text[i]
+              
+              if (objectEscapeNext) {
+                objectEscapeNext = false
+                currentObject += char
+                continue
+              }
+              
+              if (char === '\\') {
+                objectEscapeNext = true
+                currentObject += char
+                continue
+              }
+              
+              if (char === '"' && !objectEscapeNext) {
+                objectInString = !objectInString
+                currentObject += char
+                continue
+              }
+              
+              if (!objectInString) {
+                if (char === '{') {
+                  if (objectBraceCount === 0) currentObject = ''
+                  objectBraceCount++
+                  currentObject += char
+                } else if (char === '}') {
+                  objectBraceCount--
+                  currentObject += char
+                  if (objectBraceCount === 0 && currentObject.trim()) {
+                    // Check if this looks like a complete question object
+                    if (currentObject.includes('"text') || currentObject.includes('"question')) {
+                      completeObjects.push(currentObject.trim())
+                    }
+                    currentObject = ''
+                  }
+                } else if (objectBraceCount > 0) {
+                  currentObject += char
+                }
+              } else if (objectBraceCount > 0) {
+                currentObject += char
+              }
+            }
+            
+            if (completeObjects.length > 0) {
+              return '[' + completeObjects.join(',') + ']'
+            }
+          }
+          
+          return null
+        }
+        
+        const completeArray = findCompleteArray(jsonCandidate)
+        if (completeArray) {
+          try {
+            const parsed = JSON.parse(completeArray)
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed
+                .filter((q: any) => q && (q.text || q.question))
+                .map((q: any, index: number) => ({
+                  id: `q-${Date.now()}-${index}`,
+                  text: q.text || q.question || '',
+                  options: Array.isArray(q.options) ? q.options : [],
+                  correctAnswer: q.correctAnswer || q.answer || '',
+                  difficulty,
+                  explanation: q.explanation || null,
+                }))
+            }
+          } catch (parseError) {
+            // JSON is still invalid, try alternative extraction
+            console.warn('JSON parse failed after repair, trying text parsing:', parseError)
+          }
         }
       }
 
@@ -227,7 +350,8 @@ Generate the questions now:`
     content: string,
     difficulty: DifficultyLevel,
     count: number,
-    existingQuestions: GeneratedQuestion[]
+    existingQuestions: GeneratedQuestion[],
+    context: AgentContext
   ): Promise<GeneratedQuestion[]> {
     const existingTexts = existingQuestions.map((q) => q.text).join('\n')
     const prompt = `Generate ${count} additional quiz questions based on the same content. 
@@ -237,7 +361,10 @@ Generate the questions now:`
     Generate ${count} new, unique questions following the same format and difficulty level (${difficulty}).`
 
     try {
-      const generatedText = await this.aiProvider.generateText(prompt)
+      const generatedText = await this.callModelDirect(prompt, {
+        input: { content, difficulty, count: existingQuestions.length },
+        metadata: context.metadata,
+      })
       const mappedDifficulty: 'Easy' | 'Normal' | 'Hard' | 'Master' =
         difficulty === 'easy' ? 'Easy' : difficulty === 'medium' ? 'Normal' : 'Hard'
       return this.parseQuestions(generatedText, mappedDifficulty)

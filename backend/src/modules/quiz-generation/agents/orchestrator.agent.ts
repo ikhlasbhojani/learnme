@@ -4,6 +4,7 @@ import { QuizGenerationAgent, type DifficultyLevel } from './quiz-generation.age
 
 export interface OrchestratorInput {
   url?: string
+  urls?: string[]
   document?: string
   difficulty: DifficultyLevel
   numberOfQuestions: number
@@ -31,7 +32,8 @@ export class OrchestratorAgent extends BaseAgent {
   private async generateQuizName(
     content: string,
     source: string,
-    pageTitle?: string | null
+    pageTitle: string | null | undefined,
+    context: AgentContext
   ): Promise<string> {
     try {
       // Use more content for better name generation (first 2000 characters)
@@ -53,7 +55,10 @@ ${contentPreview}${content.length > 2000 ? '...' : ''}
 
 Generate only the title, nothing else. Do not include quotes or any other text.`
 
-      const name = (await this.aiProvider.generateText(prompt)).trim()
+      const name = (await this.callModelDirect(prompt, {
+        input: { content, source, pageTitle },
+        metadata: context.metadata,
+      })).trim()
 
       // Clean up the name - remove quotes, extra whitespace, and limit length
       let cleanName = name
@@ -115,8 +120,8 @@ Generate only the title, nothing else. Do not include quotes or any other text.`
     const input = context.input as OrchestratorInput
 
     // Validate input
-    if (!input.url && !input.document) {
-      throw new Error('Either URL or document must be provided')
+    if (!input.url && !input.urls && !input.document) {
+      throw new Error('Either URL, URLs array, or document must be provided')
     }
 
     if (!input.difficulty || !['easy', 'medium', 'hard'].includes(input.difficulty)) {
@@ -130,6 +135,7 @@ Generate only the title, nothing else. Do not include quotes or any other text.`
       const extractionResult = await this.contentExtractionAgent.run({
         input: {
           url: input.url,
+          urls: input.urls,
           document: input.document,
         },
         metadata: context.metadata,
@@ -142,7 +148,8 @@ Generate only the title, nothing else. Do not include quotes or any other text.`
       const quizName = await this.generateQuizName(
         extractedContent,
         extractionResult.output.source,
-        pageTitle
+        pageTitle,
+        context
       )
 
       // Step 3: Generate quiz

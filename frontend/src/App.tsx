@@ -12,6 +12,7 @@ import Setup from './pages/Setup'
 import Home from './pages/Home'
 import LearningModes from './pages/LearningModes'
 import QuizConfigPage from './pages/QuizConfig'
+import DocumentationTopicSelection from './pages/DocumentationTopicSelection'
 import GenerateQuiz from './pages/GenerateQuiz'
 import Quiz from './pages/Quiz'
 import Assessment from './pages/Assessment'
@@ -24,7 +25,6 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
       <Routes>
-        <Route path="/setup" element={<Setup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route
@@ -33,6 +33,14 @@ function App() {
             <Layout user={user} onLogout={logout}>
               <Routes>
                 <Route
+                  path="/setup"
+                  element={
+                    <ProtectedRoute>
+                      <Setup />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/home"
                   element={
                     <ProtectedRoute>
@@ -40,32 +48,42 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/learning-modes"
-                  element={
-                    <ProtectedRoute>
-                      <LearningModes />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/quiz-config"
-                  element={
-                    <ProtectedRoute>
-                      <QuizConfigPage />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/generate-quiz"
-                  element={
-                    <ProtectedRoute>
-                      <SetupGuard>
-                        <GenerateQuiz />
-                      </SetupGuard>
-                    </ProtectedRoute>
-                  }
-                />
+                       <Route
+                         path="/learning-modes"
+                         element={
+                           <ProtectedRoute>
+                             <LearningModes />
+                           </ProtectedRoute>
+                         }
+                       />
+                       <Route
+                         path="/quiz-config"
+                         element={
+                           <ProtectedRoute>
+                             <QuizConfigPage />
+                           </ProtectedRoute>
+                         }
+                       />
+                       <Route
+                         path="/documentation-topics"
+                         element={
+                           <ProtectedRoute>
+                             <SetupGuard>
+                               <DocumentationTopicSelection />
+                             </SetupGuard>
+                           </ProtectedRoute>
+                         }
+                       />
+                       <Route
+                         path="/generate-quiz"
+                         element={
+                           <ProtectedRoute>
+                             <SetupGuard>
+                               <GenerateQuiz />
+                             </SetupGuard>
+                           </ProtectedRoute>
+                         }
+                       />
                 <Route
                   path="/quiz/:quizId"
                   element={

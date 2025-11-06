@@ -8,6 +8,9 @@ export interface IUser {
   email: string
   passwordHash: string
   themePreference?: ThemePreference | null
+  aiProvider?: string | null
+  aiModel?: string | null
+  aiApiKey?: string | null
   lastLoginAt?: Date | null
   createdAt: Date
   updatedAt: Date
@@ -26,11 +29,14 @@ function rowToUser(row: any): IUserDocument {
     email: row.email,
     passwordHash: row.passwordHash,
     themePreference: row.themePreference || null,
+    aiProvider: row.aiProvider || null,
+    aiModel: row.aiModel || null,
+    aiApiKey: row.aiApiKey || null,
     lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt) : null,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),
     toJSON() {
-      const { passwordHash, ...user } = this
+      const { passwordHash, aiApiKey, ...user } = this // Don't expose password or API key
       return user
     },
   }
@@ -66,13 +72,16 @@ export const User = {
     const now = new Date().toISOString()
 
     db.prepare(`
-      INSERT INTO users (id, email, passwordHash, themePreference, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, email, passwordHash, themePreference, aiProvider, aiModel, aiApiKey, createdAt, updatedAt)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       data.email.toLowerCase(),
       data.passwordHash,
       data.themePreference || null,
+      null, // aiProvider
+      null, // aiModel
+      null, // aiApiKey
       now,
       now
     )
@@ -88,6 +97,9 @@ export const User = {
   async update(id: string, updates: {
     lastLoginAt?: Date | null
     themePreference?: ThemePreference | null
+    aiProvider?: string | null
+    aiModel?: string | null
+    aiApiKey?: string | null
   }): Promise<IUserDocument> {
     const db = getDatabase()
     const now = new Date().toISOString()
@@ -103,6 +115,21 @@ export const User = {
     if (typeof updates.themePreference !== 'undefined') {
       setParts.push('themePreference = ?')
       values.push(updates.themePreference || null)
+    }
+
+    if (typeof updates.aiProvider !== 'undefined') {
+      setParts.push('aiProvider = ?')
+      values.push(updates.aiProvider || null)
+    }
+
+    if (typeof updates.aiModel !== 'undefined') {
+      setParts.push('aiModel = ?')
+      values.push(updates.aiModel || null)
+    }
+
+    if (typeof updates.aiApiKey !== 'undefined') {
+      setParts.push('aiApiKey = ?')
+      values.push(updates.aiApiKey || null)
     }
 
     if (setParts.length === 0) {

@@ -1,8 +1,11 @@
 import { apiClient } from './apiClient'
 import { Question } from '../types'
 
+import { DocumentationTopic } from './contentService'
+
 export interface GenerateQuizFromUrlRequest {
-  url: string
+  url?: string
+  selectedTopics?: DocumentationTopic[]
   difficulty: 'easy' | 'medium' | 'hard'
   numberOfQuestions: number
   timeDuration?: number

@@ -1,8 +1,6 @@
-import fs from 'fs'
-import path from 'path'
 import { AIModelConfig } from '../../services/ai/ai-provider.interface'
-
-const envPath = process.env.ENV_FILE_PATH || path.join(process.cwd(), '.env')
+import { AVAILABLE_PROVIDERS } from '../../services/ai/ai-provider.factory'
+import User from '../auth/auth.model'
 
 export interface SetupStatus {
   hasApiKey: boolean
@@ -11,33 +9,37 @@ export interface SetupStatus {
   model?: string
 }
 
-function getEnvValue(key: string): string {
-  return process.env[key] || ''
-}
+export async function getSetupStatus(userId: string): Promise<SetupStatus> {
+  const user = await User.findById(userId)
+  if (!user) {
+    return {
+      hasApiKey: false,
+      isConfigured: false,
+    }
+  }
 
-function setEnvValue(key: string, value: string): void {
-  process.env[key] = value
-}
-
-export function getSetupStatus(): SetupStatus {
-  // Read directly from process.env to get latest value
-  const apiKey = getEnvValue('AI_API_KEY') || getEnvValue('GEMINI_API_KEY') || ''
-  const provider = getEnvValue('AI_PROVIDER') || 'openai'
-  const model = getEnvValue('AI_MODEL') || ''
-  const hasApiKey = !!(apiKey && apiKey.trim().length > 0)
+  const hasApiKey = !!(user.aiApiKey && user.aiApiKey.trim().length > 0)
   return {
     hasApiKey,
-    isConfigured: hasApiKey,
-    provider,
-    model,
+    isConfigured: hasApiKey && !!(user.aiProvider && user.aiModel),
+    provider: user.aiProvider || undefined,
+    model: user.aiModel || undefined,
   }
 }
 
-export function getAIConfig(): AIModelConfig {
-  const provider = (getEnvValue('AI_PROVIDER') || 'openai') as any
-  const model = getEnvValue('AI_MODEL') || (provider === 'openai' ? 'gpt-4o-mini' : '')
-  const apiKey = getEnvValue('AI_API_KEY') || getEnvValue('GEMINI_API_KEY') || ''
-  const baseUrl = getEnvValue('AI_BASE_URL') || undefined
+export async function getAIConfig(userId: string): Promise<AIModelConfig | null> {
+  const user = await User.findById(userId)
+  if (!user || !user.aiApiKey) {
+    return null
+  }
+
+  const provider = (user.aiProvider || 'openai') as any
+  const model = user.aiModel || (provider === 'openai' ? 'gpt-4o-mini' : '')
+  const apiKey = user.aiApiKey
+  
+  // Get baseUrl from provider definition
+  const providerDef = AVAILABLE_PROVIDERS.find(p => p.id === provider)
+  const baseUrl = providerDef?.baseUrl || undefined
 
   return {
     provider,
@@ -47,62 +49,25 @@ export function getAIConfig(): AIModelConfig {
   }
 }
 
-export function updateAIConfig(config: {
-  provider: string
-  model: string
-  apiKey: string
-  baseUrl?: string
-}): void {
-  // Read existing .env file
-  let envContent = ''
-  if (fs.existsSync(envPath)) {
-    envContent = fs.readFileSync(envPath, 'utf-8')
+export async function updateAIConfig(
+  userId: string,
+  config: {
+    provider: string
+    model: string
+    apiKey: string
+    baseUrl?: string
   }
+): Promise<void> {
+  // Get baseUrl from provider definition if not provided
+  const providerDef = AVAILABLE_PROVIDERS.find(p => p.id === config.provider)
+  const baseUrl = config.baseUrl || providerDef?.baseUrl
 
-  // Update or add AI configuration
-  const lines = envContent.split('\n')
-  const updates: Record<string, string> = {
-    AI_PROVIDER: config.provider,
-    AI_MODEL: config.model,
-    AI_API_KEY: config.apiKey,
-  }
-
-  if (config.baseUrl) {
-    updates.AI_BASE_URL = config.baseUrl
-  }
-
-  // Remove old GEMINI_API_KEY if it exists
-  const updatedLines = lines
-    .filter((line) => {
-      const trimmed = line.trim()
-      return (
-        !trimmed.startsWith('AI_PROVIDER=') &&
-        !trimmed.startsWith('AI_MODEL=') &&
-        !trimmed.startsWith('AI_API_KEY=') &&
-        !trimmed.startsWith('AI_BASE_URL=') &&
-        !trimmed.startsWith('GEMINI_API_KEY=')
-      )
-    })
-    .filter((line) => line.trim().length > 0)
-
-  // Add new configuration
-  Object.entries(updates).forEach(([key, value]) => {
-    updatedLines.push(`${key}=${value}`)
+  // Update user record in database
+  await User.update(userId, {
+    aiProvider: config.provider,
+    aiModel: config.model,
+    aiApiKey: config.apiKey,
   })
-
-  // Write back to .env file
-  fs.writeFileSync(envPath, updatedLines.join('\n') + '\n')
-
-  // Update the in-memory config immediately
-  Object.entries(updates).forEach(([key, value]) => {
-    setEnvValue(key, value)
-  })
-
-  // Keep legacy GEMINI_API_KEY for backward compatibility (if it was set)
-  // But we no longer use it as primary
-
-  // Reload dotenv
-  const { config: loadEnv } = require('dotenv')
-  loadEnv({ path: envPath, override: true })
 }
+
 

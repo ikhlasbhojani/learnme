@@ -31,13 +31,29 @@ export async function generateQuizFromUrl(
   userId: string,
   input: GenerateQuizFromUrlInput
 ): Promise<GeneratedQuizResult> {
-  const { url, difficulty, numberOfQuestions, timeDuration } = input
+  const { url, selectedTopics, difficulty, numberOfQuestions, timeDuration } = input
 
-  // Validate URL
-  try {
-    new URL(url)
-  } catch {
-    throw new AppError('Invalid URL format', 400)
+  // Validate - either url or selectedTopics must be provided
+  if (!url && (!selectedTopics || selectedTopics.length === 0)) {
+    throw new AppError('Either URL or selected topics must be provided', 400)
+  }
+
+  // If selectedTopics is provided, use those URLs
+  let urlsToUse: string[] = []
+  let sourceDescription = ''
+
+  if (selectedTopics && selectedTopics.length > 0) {
+    urlsToUse = selectedTopics.map((topic) => topic.url)
+    sourceDescription = selectedTopics.map((topic) => topic.title).join(', ')
+  } else if (url) {
+    urlsToUse = [url]
+    sourceDescription = url
+    // Validate URL format
+    try {
+      new URL(url)
+    } catch {
+      throw new AppError('Invalid URL format', 400)
+    }
   }
 
   // Validate number of questions
@@ -45,15 +61,18 @@ export async function generateQuizFromUrl(
 
   // Create or find content input
   const existing = await ContentInput.find({ userId })
+  const sourceKey = selectedTopics
+    ? selectedTopics.map((t) => t.url).join('|')
+    : url
   let contentInput = existing.find(
-    (item) => item.type === 'url' && item.source === url
+    (item) => item.type === 'url' && item.source === sourceKey
   )
 
   if (!contentInput) {
     contentInput = await ContentInput.create({
       userId,
       type: 'url',
-      source: url,
+      source: sourceKey,
     })
   }
 
@@ -62,7 +81,8 @@ export async function generateQuizFromUrl(
 
   // Prepare orchestrator input
   const orchestratorInput: OrchestratorInput = {
-    url,
+    url: urlsToUse.length === 1 ? urlsToUse[0] : undefined,
+    urls: urlsToUse.length > 1 ? urlsToUse : undefined,
     difficulty,
     numberOfQuestions: questionCount,
   }
@@ -91,7 +111,7 @@ export async function generateQuizFromUrl(
   const quiz = await Quiz.create({
     userId,
     contentInputId: contentInput.id,
-    name: result.output.quizName || null,
+    name: result.output.quizName || selectedTopics?.map((t) => t.title).join(' - ') || null,
     configuration: {
       difficulty: mappedDifficulty,
       numberOfQuestions: questions.length,
