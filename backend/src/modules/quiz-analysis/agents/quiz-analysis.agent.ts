@@ -14,21 +14,21 @@ export class QuizAnalysisAgent extends BaseAgent {
   constructor() {
     super(
       'QuizAnalyzer',
-      `You are a quiz analysis agent. Your job is to analyze quiz results and provide comprehensive feedback.
-      Analyze the user's performance based on:
-      - Overall score and percentage
-      - Correct vs incorrect answers
-      - Difficulty levels of questions answered correctly/incorrectly
-      - Questions left unanswered
-      - Time taken (if available)
+      `You are an expert quiz analysis agent specializing in providing detailed, actionable feedback on quiz performance.
       
-      Provide:
-      1. A comprehensive performance review
-      2. Identification of weak areas (difficulty levels or topics)
-      3. Actionable suggestions for improvement
-      4. Identification of strengths
-      5. Specific improvement areas
-      6. A detailed analysis explaining the performance`
+      Your role is to:
+      1. Analyze quiz results comprehensively
+      2. Identify specific weak areas and patterns
+      3. Provide detailed, actionable improvement strategies
+      4. Highlight strengths to build confidence
+      5. Offer personalized learning recommendations
+      
+      Always provide:
+      - Detailed performance breakdown by difficulty level
+      - Specific weak areas with examples
+      - Concrete, actionable improvement steps
+      - Encouragement and positive reinforcement
+      - Learning path recommendations`
     )
   }
 
@@ -148,44 +148,70 @@ export class QuizAnalysisAgent extends BaseAgent {
     }>,
     totalQuestions: number
   ): string {
-    return `Analyze this quiz performance and provide comprehensive feedback.
+    // Calculate detailed statistics
+    const incorrectQuestions = answeredQuestions.filter(q => !q.isCorrect)
+    const correctQuestions = answeredQuestions.filter(q => q.isCorrect)
+    
+    // Analyze patterns in incorrect answers
+    const incorrectByDifficulty: Record<string, number> = {}
+    incorrectQuestions.forEach(q => {
+      incorrectByDifficulty[q.difficulty] = (incorrectByDifficulty[q.difficulty] || 0) + 1
+    })
 
-Performance Summary:
-- Overall Score: ${score.toFixed(1)}%
-- Correct Answers: ${correctCount}
-- Incorrect Answers: ${incorrectCount}
-- Unanswered Questions: ${unansweredCount}
-- Total Questions: ${totalQuestions}
+    return `You are analyzing a quiz performance. Provide a DETAILED, COMPREHENSIVE analysis with specific insights and actionable recommendations.
 
-Performance by Difficulty Level:
+=== PERFORMANCE METRICS ===
+Overall Score: ${score.toFixed(1)}%
+- Correct Answers: ${correctCount} out of ${totalQuestions} (${((correctCount / totalQuestions) * 100).toFixed(1)}%)
+- Incorrect Answers: ${incorrectCount} (${((incorrectCount / totalQuestions) * 100).toFixed(1)}%)
+- Unanswered Questions: ${unansweredCount} (${((unansweredCount / totalQuestions) * 100).toFixed(1)}%)
+
+=== PERFORMANCE BY DIFFICULTY LEVEL ===
 ${Object.entries(difficultyStats)
-  .map(
-    ([diff, stats]) =>
-      `- ${diff}: ${stats.correct}/${stats.total} correct (${((stats.correct / stats.total) * 100).toFixed(1)}%)`
-  )
+  .map(([diff, stats]) => {
+    const percentage = ((stats.correct / stats.total) * 100).toFixed(1)
+    const performance = percentage >= 80 ? 'Excellent' : percentage >= 60 ? 'Good' : percentage >= 40 ? 'Needs Improvement' : 'Weak'
+    return `- ${diff}: ${stats.correct}/${stats.total} correct (${percentage}%) - ${performance}`
+  })
   .join('\n')}
 
-Sample Questions Answered:
-${answeredQuestions.slice(0, 10).map((q, i) => `${i + 1}. ${q.question}\n   Your Answer: ${q.userAnswer}\n   Correct Answer: ${q.correctAnswer}\n   Result: ${q.isCorrect ? 'Correct' : 'Incorrect'}\n   Difficulty: ${q.difficulty}`).join('\n\n')}
+=== INCORRECT ANSWERS ANALYSIS ===
+Total Incorrect: ${incorrectCount}
+Breakdown by Difficulty:
+${Object.entries(incorrectByDifficulty)
+  .map(([diff, count]) => `- ${diff}: ${count} incorrect`)
+  .join('\n')}
 
-Please provide a comprehensive analysis in the following JSON format:
+=== SAMPLE QUESTIONS FOR ANALYSIS ===
+Incorrect Answers (showing patterns):
+${incorrectQuestions.slice(0, 8).map((q, i) => 
+  `${i + 1}. [${q.difficulty}] ${q.question.substring(0, 150)}${q.question.length > 150 ? '...' : ''}\n   ❌ Your Answer: ${q.userAnswer}\n   ✅ Correct Answer: ${q.correctAnswer}`
+).join('\n\n')}
+
+${correctQuestions.length > 0 ? `\nCorrect Answers (showing strengths):\n${correctQuestions.slice(0, 5).map((q, i) => 
+  `${i + 1}. [${q.difficulty}] ${q.question.substring(0, 150)}${q.question.length > 150 ? '...' : ''}\n   ✅ Correctly answered: ${q.userAnswer}`
+).join('\n\n')}` : ''}
+
+=== ANALYSIS REQUIREMENTS ===
+Provide a comprehensive analysis in this EXACT JSON format (NO trailing commas, valid JSON only):
 {
-  "performanceReview": "A detailed 2-3 paragraph review of the overall performance",
-  "weakAreas": ["array of difficulty levels or topics where performance was weak"],
-  "suggestions": ["array of actionable suggestions for improvement"],
-  "strengths": ["array of identified strengths"],
-  "improvementAreas": ["array of specific areas that need improvement"],
-  "detailedAnalysis": "A comprehensive paragraph explaining the performance, patterns, and insights"
+  "performanceReview": "A detailed 3-4 paragraph comprehensive review covering: overall performance assessment, score interpretation, what the score means in context, key observations about the user's knowledge level, and an encouraging but honest evaluation. Be specific about what they did well and what needs work.",
+  "weakAreas": ["List specific weak areas. For each difficulty level where performance < 60%, include: 'Difficulty Level: [Easy/Normal/Hard/Master]' and specific topics/concepts that were missed. Be specific - e.g., 'Hard: Advanced concepts in [topic]', 'Normal: Application of [concept]'"],
+  "suggestions": ["Provide 5-7 actionable, specific suggestions. Each should be: 1) Specific to their weak areas, 2) Actionable (what to do, not just 'study more'), 3) Prioritized (most important first). Examples: 'Focus on practicing [specific topic] questions at [difficulty] level', 'Review [specific concept] before attempting harder questions', 'Take practice quizzes focusing on [weak area]'"],
+  "strengths": ["List 3-5 specific strengths. Be specific: 'Strong performance in [difficulty] level questions', 'Good understanding of [topic/concept]', 'Consistent accuracy in [area]'. Include positive reinforcement."],
+  "improvementAreas": ["List 3-5 specific areas needing improvement. Be detailed: 'Master difficulty questions - scored [X]%', 'Time management - [X] unanswered questions', 'Concept application in [specific area]'. Include specific metrics."],
+  "detailedAnalysis": "A comprehensive 4-5 paragraph detailed analysis covering: 1) Performance patterns and trends, 2) Specific analysis of incorrect answers (what patterns emerge, what concepts were misunderstood), 3) Difficulty progression analysis (how performance changes across difficulty levels), 4) Learning gaps identification (specific knowledge gaps), 5) Personalized learning path recommendations (what to study next, in what order, how to progress). Be very specific and detailed."
 }
 
-Focus on:
-1. Identifying patterns in correct/incorrect answers
-2. Difficulty level performance (Easy, Normal, Hard, Master)
-3. Specific areas that need attention
-4. Actionable recommendations
-5. Positive reinforcement for strengths
+=== CRITICAL INSTRUCTIONS ===
+1. Be SPECIFIC - mention actual difficulty levels, topics, and concepts
+2. Be ACTIONABLE - every suggestion should tell them WHAT to do, not just what's wrong
+3. Be ENCOURAGING - highlight strengths while being honest about weaknesses
+4. Be DETAILED - the detailedAnalysis should be comprehensive (4-5 paragraphs)
+5. Use the actual data provided - reference specific scores, difficulty levels, and question patterns
+6. Return ONLY valid JSON - no markdown, no code blocks, no extra text
 
-Generate the analysis now:`
+Generate the detailed analysis now:`
   }
 
   private parseAnalysis(
@@ -194,17 +220,57 @@ Generate the analysis now:`
     score: number
   ): QuizAnalysisResult {
     try {
+      // Clean the text - remove markdown code blocks
+      let cleanedText = analysisText.trim()
+      if (cleanedText.startsWith('```')) {
+        cleanedText = cleanedText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+      }
+
       // Try to extract JSON from response
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/)
+      const jsonMatch = cleanedText.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0])
-        return {
-          performanceReview: parsed.performanceReview || '',
-          weakAreas: Array.isArray(parsed.weakAreas) ? parsed.weakAreas : [],
-          suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
-          strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
-          improvementAreas: Array.isArray(parsed.improvementAreas) ? parsed.improvementAreas : [],
-          detailedAnalysis: parsed.detailedAnalysis || '',
+        let jsonStr = jsonMatch[0]
+        
+        // Clean JSON string
+        jsonStr = jsonStr
+          // Remove trailing commas before closing brackets/braces
+          .replace(/,(\s*[\]}])/g, '$1')
+          // Fix common quote issues
+          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+          // Remove any control characters
+          .replace(/[\x00-\x1F\x7F]/g, '')
+          // Fix double commas
+          .replace(/,,+/g, ',')
+          // Remove commas at start of objects/arrays
+          .replace(/(\[|\{)\s*,/g, '$1')
+        
+        try {
+          const parsed = JSON.parse(jsonStr)
+          return {
+            performanceReview: parsed.performanceReview || '',
+            weakAreas: Array.isArray(parsed.weakAreas) ? parsed.weakAreas : [],
+            suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+            strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+            improvementAreas: Array.isArray(parsed.improvementAreas) ? parsed.improvementAreas : [],
+            detailedAnalysis: parsed.detailedAnalysis || '',
+          }
+        } catch (parseError) {
+          console.warn('JSON parse failed after cleaning, trying aggressive clean:', parseError)
+          // Try aggressive cleaning
+          try {
+            jsonStr = this.aggressiveJsonClean(jsonStr)
+            const parsed = JSON.parse(jsonStr)
+            return {
+              performanceReview: parsed.performanceReview || '',
+              weakAreas: Array.isArray(parsed.weakAreas) ? parsed.weakAreas : [],
+              suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+              strengths: Array.isArray(parsed.strengths) ? parsed.strengths : [],
+              improvementAreas: Array.isArray(parsed.improvementAreas) ? parsed.improvementAreas : [],
+              detailedAnalysis: parsed.detailedAnalysis || '',
+            }
+          } catch (finalError) {
+            console.warn('Aggressive JSON clean also failed, using basic analysis')
+          }
         }
       }
     } catch (error) {
@@ -221,6 +287,44 @@ Generate the analysis now:`
     )
   }
 
+  private aggressiveJsonClean(jsonStr: string): string {
+    try {
+      // Remove any text before first { and after last }
+      const firstBrace = jsonStr.indexOf('{')
+      const lastBrace = jsonStr.lastIndexOf('}')
+      
+      if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+        throw new Error('No valid object structure found')
+      }
+      
+      let cleaned = jsonStr.substring(firstBrace, lastBrace + 1)
+      
+      // More aggressive cleaning
+      cleaned = cleaned
+        // Remove trailing commas
+        .replace(/,(\s*[}\]])/g, '$1')
+        // Fix unquoted keys
+        .replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+        // Remove duplicate commas
+        .replace(/,+/g, ',')
+        // Remove commas at start of objects/arrays
+        .replace(/(\[|\{)\s*,/g, '$1')
+        // Fix newlines in strings (replace with space)
+        .replace(/"\s*\n\s*"/g, '" "')
+        // Remove any standalone commas
+        .replace(/,\s*,/g, ',')
+        // Fix missing commas between objects
+        .replace(/\}\s*\{/g, '},{')
+        // Remove any control characters except newlines in strings
+        .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '')
+      
+      return cleaned
+    } catch (error) {
+      console.warn('Aggressive JSON clean failed:', error)
+      return jsonStr
+    }
+  }
+
   private generateBasicAnalysis(
     score: number,
     correctCount: number,
@@ -230,54 +334,79 @@ Generate the analysis now:`
   ): QuizAnalysisResult {
     const weakAreas: string[] = []
     const strengths: string[] = []
+    const improvementAreas: string[] = []
 
+    // Analyze performance by difficulty
     Object.entries(difficultyStats).forEach(([difficulty, stats]) => {
       const percentage = (stats.correct / stats.total) * 100
       if (percentage < 50) {
-        weakAreas.push(difficulty)
+        weakAreas.push(`${difficulty} difficulty (${percentage.toFixed(1)}% correct)`)
+        improvementAreas.push(`${difficulty} level questions - scored ${percentage.toFixed(1)}% (${stats.correct}/${stats.total} correct)`)
       } else if (percentage >= 75) {
-        strengths.push(difficulty)
+        strengths.push(`Strong performance in ${difficulty} level questions (${percentage.toFixed(1)}% correct)`)
+      } else {
+        improvementAreas.push(`${difficulty} level questions - scored ${percentage.toFixed(1)}% (needs improvement)`)
       }
     })
 
+    // Generate detailed performance review
     let performanceReview = ''
     if (score >= 90) {
-      performanceReview =
-        'Excellent performance! You have demonstrated a strong understanding of the material across all difficulty levels.'
+      performanceReview = `Excellent performance! You scored ${score.toFixed(1)}% with ${correctCount} correct answers out of ${correctCount + incorrectCount + unansweredCount} total questions. You have demonstrated a strong understanding of the material across all difficulty levels. Your consistent accuracy shows solid comprehension of the core concepts.`
     } else if (score >= 70) {
-      performanceReview =
-        'Good performance! You have a solid grasp of most concepts, with room for improvement in some areas.'
+      performanceReview = `Good performance! You scored ${score.toFixed(1)}% with ${correctCount} correct and ${incorrectCount} incorrect answers. You have a solid grasp of most concepts, with room for improvement in some areas. Focus on the areas where you struggled to further enhance your understanding.`
     } else if (score >= 50) {
-      performanceReview =
-        'Fair performance. There is room for improvement in several areas. Focus on reviewing the material and practicing more.'
+      performanceReview = `Fair performance. You scored ${score.toFixed(1)}% with ${correctCount} correct and ${incorrectCount} incorrect answers. There is room for improvement in several areas. Focus on reviewing the material more thoroughly and practicing more questions, especially in the difficulty levels where you struggled.`
     } else {
-      performanceReview =
-        'Needs improvement. Consider reviewing the material more thoroughly and taking additional practice quizzes.'
+      performanceReview = `Your score of ${score.toFixed(1)}% indicates that you need to review the material more thoroughly. You answered ${correctCount} questions correctly and ${incorrectCount} incorrectly. Consider going back to the source material, focusing on the fundamental concepts, and taking additional practice quizzes to reinforce your learning.`
     }
 
+    // Generate actionable suggestions
     const suggestions: string[] = []
     if (weakAreas.length > 0) {
-      suggestions.push(`Focus on ${weakAreas.join(' and ')} difficulty questions to improve your understanding.`)
+      suggestions.push(`Focus on practicing ${weakAreas.map(a => a.split(' ')[0]).join(' and ')} difficulty questions to improve your understanding in these areas.`)
     }
     if (unansweredCount > 0) {
       suggestions.push(
-        `Try to answer all questions. You left ${unansweredCount} question${unansweredCount > 1 ? 's' : ''} unanswered.`
+        `Try to answer all questions. You left ${unansweredCount} question${unansweredCount > 1 ? 's' : ''} unanswered, which affected your score. Practice time management to ensure you can attempt all questions.`
       )
     }
     if (score < 70) {
-      suggestions.push('Review the material again and take another quiz to reinforce learning.')
+      suggestions.push('Review the source material again, paying special attention to the concepts you missed, and take another quiz to reinforce your learning.')
+    }
+    if (incorrectCount > correctCount) {
+      suggestions.push('Consider reviewing the fundamental concepts before attempting more advanced questions. Build a strong foundation first.')
     }
     if (suggestions.length === 0) {
-      suggestions.push('Keep up the great work! Continue practicing to maintain your skills.')
+      suggestions.push('Keep up the great work! Continue practicing to maintain and further improve your skills.')
     }
+
+    // Generate detailed analysis
+    const difficultyBreakdown = Object.entries(difficultyStats)
+      .map(([diff, stats]) => {
+        const pct = ((stats.correct / stats.total) * 100).toFixed(1)
+        return `${diff}: ${stats.correct}/${stats.total} (${pct}%)`
+      })
+      .join(', ')
+
+    const detailedAnalysis = `Performance Analysis:
+You achieved an overall score of ${score.toFixed(1)}%, answering ${correctCount} questions correctly, ${incorrectCount} incorrectly, and leaving ${unansweredCount} unanswered.
+
+Performance Breakdown by Difficulty:
+${difficultyBreakdown}
+
+${weakAreas.length > 0 ? `Areas needing attention: ${weakAreas.join(', ')}.` : ''}
+${strengths.length > 0 ? `Your strengths: ${strengths.join(', ')}.` : ''}
+
+${score >= 70 ? 'You have a solid foundation. Continue practicing to maintain and improve your performance.' : 'Focus on reviewing the material, especially in the areas where you struggled, and take practice quizzes to reinforce your learning.'}`
 
     return {
       performanceReview,
-      weakAreas,
+      weakAreas: weakAreas.map(a => a.split('(')[0].trim()),
       suggestions,
       strengths,
-      improvementAreas: weakAreas,
-      detailedAnalysis: `You scored ${score.toFixed(1)}% with ${correctCount} correct and ${incorrectCount} incorrect answers. ${performanceReview}`,
+      improvementAreas,
+      detailedAnalysis,
     }
   }
 }

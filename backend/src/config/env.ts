@@ -11,10 +11,13 @@ const envSchema = z
       .int()
       .min(1, 'PORT must be positive')
       .default(5000),
-    DATABASE_PATH: z.string().optional(),
+    MONGODB_URI: z.string().default('mongodb://localhost:27017/learnme'),
     JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters').default('your-secret-key-change-in-production'),
     CORS_ORIGIN: z.string().optional(),
-    GEMINI_API_KEY: z.string().optional().default(''),
+    AI_PROVIDER: z.string().default('gemini'),
+    AI_MODEL: z.string().default('gemini-1.5-flash'),
+    AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
+    AI_BASE_URL: z.string().optional(),
   })
   .passthrough()
 
@@ -30,13 +33,13 @@ const env = parsed.data
 export const appEnv = {
   nodeEnv: env.NODE_ENV,
   port: env.PORT,
-  databasePath: env.DATABASE_PATH,
+  mongodbUri: env.MONGODB_URI,
   jwtSecret: env.JWT_SECRET,
   corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
-  get geminiApiKey() {
-    // Read dynamically from process.env to allow runtime updates
-    return process.env.GEMINI_API_KEY || ''
-  },
+  aiProvider: env.AI_PROVIDER,
+  aiModel: env.AI_MODEL,
+  aiApiKey: env.AI_API_KEY,
+  aiBaseUrl: env.AI_BASE_URL,
   isProduction: env.NODE_ENV === 'production',
 }
 

@@ -59,33 +59,33 @@ Useful scripts:
 ## Project Structure
 
 ```
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── hooks/
-│   ├── utils/
-│   ├── types/
-│   ├── styles/
-│   └── test/
-├── tests/
-├── package.json
-└── vite.config.ts
-
-backend/
-├── env.example
-├── package.json
-├── tsconfig.json
-└── src/
-    ├── app.ts
-    ├── server.ts
-    ├── config/
-    │   ├── database.ts
-    │   └── env.ts
-    ├── middlewares/
-    ├── modules/
-    │   ├── auth/
-    │   ├── content/
-    │   └── quiz/
-    └── utils/
+learnme/
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   ├── types/
+│   │   ├── styles/
+│   │   └── test/
+│   ├── package.json
+│   └── vite.config.ts
+│
+└── backend/
+    ├── env.example
+    ├── package.json
+    ├── tsconfig.json
+    └── src/
+        ├── app.ts
+        ├── server.ts
+        ├── config/
+        │   ├── database.ts
+        │   └── env.ts
+        ├── middlewares/
+        ├── modules/
+        │   ├── auth/
+        │   ├── content/
+        │   └── quiz/
+        └── utils/
 ```

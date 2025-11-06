@@ -15,11 +15,13 @@ import type { AuthenticatedRequest } from '../../middlewares/auth.middleware'
 import { appEnv } from '../../config/env'
 
 function attachAuthCookie(res: Response, token: string) {
+  // Don't set domain for development - let browser handle it
   res.cookie('token', token, {
     httpOnly: true,
     sameSite: 'lax',
-    secure: appEnv.isProduction,
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: false,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
   })
 }
 
@@ -34,8 +36,10 @@ export async function signupHandler(req: Request, res: Response, next: NextFunct
 
   res.status(201).json({
     message: 'Signup successful',
-    data: result.user,
-    token: result.token,
+    data: {
+      user: result.user,
+      token: result.token,
+    },
   })
 }
 
@@ -50,8 +54,10 @@ export async function loginHandler(req: Request, res: Response, next: NextFuncti
 
   res.status(200).json({
     message: 'Login successful',
-    data: result.user,
-    token: result.token,
+    data: {
+      user: result.user,
+      token: result.token,
+    },
   })
 }
 
@@ -59,7 +65,8 @@ export function logoutHandler(_req: Request, res: Response) {
   res.clearCookie('token', {
     httpOnly: true,
     sameSite: 'lax',
-    secure: appEnv.isProduction,
+    secure: false,
+    path: '/',
   })
   res.status(200).json({
     message: 'Logged out successfully',

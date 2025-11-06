@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 export interface UseFullscreenReturn {
   isFullscreen: boolean
   isSupported: boolean
-  enterFullscreen: (element?: HTMLElement) => Promise<void>
+  enterFullscreen: (element?: HTMLElement, suppressError?: boolean) => Promise<void>
   exitFullscreen: () => Promise<void>
   error: string | null
 }
@@ -47,10 +47,10 @@ export function useFullscreen(): UseFullscreenReturn {
   }, [])
 
   const enterFullscreen = useCallback(
-    async (element?: HTMLElement) => {
+    async (element?: HTMLElement, suppressError: boolean = false) => {
       if (!isSupported) {
         const errorMsg = 'Fullscreen API not supported'
-        setError(errorMsg)
+        if (!suppressError) setError(errorMsg)
         throw new Error(errorMsg)
       }
 
@@ -72,11 +72,14 @@ export function useFullscreen(): UseFullscreenReturn {
       } catch (err) {
         const errorMsg =
           err instanceof Error
-            ? err.message.includes('permission')
+            ? err.message.includes('permission') || err.message.includes('Permissions check failed') || err.message.includes('user gesture')
               ? 'Fullscreen permission denied'
               : err.message
             : 'Fullscreen permission denied'
-        setError(errorMsg)
+        // Only set error if not suppressed (for automatic attempts)
+        if (!suppressError) {
+          setError(errorMsg)
+        }
         throw new Error(errorMsg)
       }
     },

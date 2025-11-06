@@ -1,5 +1,4 @@
-import { getDatabase } from '../../config/database'
-import { generateId } from '../../config/schema'
+import mongoose, { Schema, Document, Model } from 'mongoose'
 
 export type QuizStatus = 'pending' | 'in-progress' | 'completed' | 'expired'
 export type QuizPauseReason = 'tab-change' | 'manual'
@@ -52,85 +51,222 @@ export interface IQuiz {
   updatedAt: Date
 }
 
-export interface IQuizDocument extends IQuiz {
+export interface IQuizDocument extends IQuiz, Document {
   toJSON(): IQuiz & { id: string; userId: string; contentInputId?: string | null }
 }
 
-/**
- * Convert database row to Quiz object
- */
-function rowToQuiz(row: any): IQuizDocument {
-  return {
-    id: row.id,
-    userId: row.userId,
-    contentInputId: row.contentInputId || null,
-    name: row.name || null,
-    configuration: JSON.parse(row.configuration),
-    questions: JSON.parse(row.questions),
-    answers: JSON.parse(row.answers || '{}'),
-    startTime: row.startTime ? new Date(row.startTime) : null,
-    endTime: row.endTime ? new Date(row.endTime) : null,
-    status: row.status as QuizStatus,
-    score: row.score !== null ? row.score : null,
-    correctCount: row.correctCount !== null ? row.correctCount : null,
-    incorrectCount: row.incorrectCount !== null ? row.incorrectCount : null,
-    pauseReason: row.pauseReason || null,
-    pausedAt: row.pausedAt ? new Date(row.pausedAt) : null,
-    pauseCount: row.pauseCount || 0,
-    analysis: row.analysis ? JSON.parse(row.analysis) : null,
-    createdAt: new Date(row.createdAt),
-    updatedAt: new Date(row.updatedAt),
-    toJSON() {
-      return {
-        id: this.id,
-        userId: this.userId,
-        contentInputId: this.contentInputId,
-        name: this.name,
-        configuration: this.configuration,
-        questions: this.questions,
-        answers: this.answers,
-        startTime: this.startTime,
-        endTime: this.endTime,
-        status: this.status,
-        score: this.score,
-        correctCount: this.correctCount,
-        incorrectCount: this.incorrectCount,
-        pauseReason: this.pauseReason,
-        pausedAt: this.pausedAt,
-        pauseCount: this.pauseCount,
-        analysis: this.analysis,
-        createdAt: this.createdAt,
-        updatedAt: this.updatedAt,
-      }
+const quizConfigurationSchema = new Schema<IQuizConfiguration>(
+  {
+    difficulty: {
+      type: String,
+      enum: ['Easy', 'Normal', 'Hard', 'Master'],
+      required: true,
+    },
+    numberOfQuestions: {
+      type: Number,
+      required: true,
+    },
+    timeDuration: {
+      type: Number,
+      required: true,
+    },
+  },
+  { _id: false }
+)
+
+const quizQuestionSchema = new Schema<IQuizQuestion>(
+  {
+    id: { type: String, required: true },
+    text: { type: String, required: true },
+    options: { type: [String], required: true },
+    correctAnswer: { type: String, required: true },
+    difficulty: {
+      type: String,
+      enum: ['Easy', 'Normal', 'Hard', 'Master'],
+      required: true,
+    },
+    explanation: { type: String, default: null },
+  },
+  { _id: false }
+)
+
+const quizAnalysisSchema = new Schema<IQuizAnalysis>(
+  {
+    performanceReview: { type: String },
+    weakAreas: { type: [String] },
+    suggestions: { type: [String] },
+    detailedAnalysis: { type: String },
+    strengths: { type: [String] },
+    improvementAreas: { type: [String] },
+    analyzedAt: { type: Date, default: null },
+  },
+  { _id: false }
+)
+
+const quizSchema = new Schema<IQuizDocument>(
+  {
+    _id: {
+      type: String,
+      default: () => `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+    },
+    userId: {
+      type: String,
+      required: true,
+    },
+    contentInputId: {
+      type: String,
+      default: null,
+    },
+    name: {
+      type: String,
+      default: null,
+    },
+    configuration: {
+      type: quizConfigurationSchema,
+      required: true,
+    },
+    questions: {
+      type: [quizQuestionSchema],
+      required: true,
+    },
+    answers: {
+      type: Schema.Types.Mixed,
+      default: {},
+    },
+    startTime: {
+      type: Date,
+      default: null,
+    },
+    endTime: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'in-progress', 'completed', 'expired'],
+      required: true,
+      default: 'pending',
+    },
+    score: {
+      type: Number,
+      default: null,
+    },
+    correctCount: {
+      type: Number,
+      default: null,
+    },
+    incorrectCount: {
+      type: Number,
+      default: null,
+    },
+    pauseReason: {
+      type: String,
+      enum: ['tab-change', 'manual'],
+      default: null,
+    },
+    pausedAt: {
+      type: Date,
+      default: null,
+    },
+    pauseCount: {
+      type: Number,
+      default: 0,
+    },
+    analysis: {
+      type: quizAnalysisSchema,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    _id: false,
+    id: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        delete ret.__v
+        ret.id = ret._id
+        delete ret._id
+        return ret
+      },
     },
   }
+)
+
+// Create indexes (compound index covers both userId and status queries)
+quizSchema.index({ userId: 1, status: 1 })
+
+const QuizModel = mongoose.model<IQuizDocument>('Quiz', quizSchema)
+
+// Static methods for compatibility with existing code - wrap original Mongoose methods
+const originalFindById = QuizModel.findById.bind(QuizModel)
+const originalFind = QuizModel.find.bind(QuizModel)
+const originalCreate = QuizModel.create.bind(QuizModel)
+
+QuizModel.findById = async function (id: string): Promise<IQuizDocument | null> {
+  // For custom string _id fields, we need to query by _id directly
+  // Use mongoose directly instead of our custom override
+  return await mongoose.model<IQuizDocument>('Quiz').findOne({ _id: id })
 }
 
-export const Quiz = {
-  async findById(id: string): Promise<IQuizDocument | null> {
-    const db = getDatabase()
-    const row = db.prepare('SELECT * FROM quizzes WHERE id = ?').get(id)
-    return row ? rowToQuiz(row) : null
-  },
+QuizModel.find = async function (query: { userId?: string; status?: QuizStatus }): Promise<IQuizDocument[]> {
+  const mongoQuery: any = {}
+  if (query.userId) mongoQuery.userId = query.userId
+  if (query.status) mongoQuery.status = query.status
+  
+  return await originalFind(mongoQuery).sort({ createdAt: -1 })
+}
 
-  async find(query: { userId?: string; status?: QuizStatus }): Promise<IQuizDocument[]> {
-    const db = getDatabase()
-    let rows: any[]
+QuizModel.create = async function (data: {
+  userId: string
+  contentInputId?: string | null
+  name?: string | null
+  configuration: IQuizConfiguration
+  questions: IQuizQuestion[]
+  answers?: Record<string, string>
+  status?: QuizStatus
+}): Promise<IQuizDocument> {
+  return await originalCreate({
+    _id: `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+    userId: data.userId,
+    contentInputId: data.contentInputId || null,
+    name: data.name || null,
+    configuration: data.configuration,
+    questions: data.questions,
+    answers: data.answers || {},
+    status: data.status || 'pending',
+  })
+}
 
-    if (query.userId && query.status) {
-      rows = db.prepare('SELECT * FROM quizzes WHERE userId = ? AND status = ? ORDER BY createdAt DESC').all(query.userId, query.status)
-    } else if (query.userId) {
-      rows = db.prepare('SELECT * FROM quizzes WHERE userId = ? ORDER BY createdAt DESC').all(query.userId)
-    } else if (query.status) {
-      rows = db.prepare('SELECT * FROM quizzes WHERE status = ? ORDER BY createdAt DESC').all(query.status)
-    } else {
-      rows = db.prepare('SELECT * FROM quizzes ORDER BY createdAt DESC').all()
-    }
+QuizModel.update = async function (id: string, updates: Partial<{
+  name: string | null
+  status: QuizStatus
+  startTime: Date | null
+  endTime: Date | null
+  score: number | null
+  correctCount: number | null
+  incorrectCount: number | null
+  pauseReason: QuizPauseReason | null
+  pausedAt: Date | null
+  pauseCount: number
+  analysis: IQuizAnalysis | null
+  answers: Record<string, string>
+}>): Promise<IQuizDocument> {
+  const updated = await QuizModel.findByIdAndUpdate(
+    id,
+    { $set: updates },
+    { new: true, runValidators: true }
+  )
+  if (!updated) {
+    throw new Error('Quiz not found')
+  }
+  return updated
+}
 
-    return rows.map(rowToQuiz)
-  },
-
-  async create(data: {
+// Export with static methods
+export const Quiz = QuizModel as typeof QuizModel & {
+  findById(id: string): Promise<IQuizDocument | null>
+  find(query: { userId?: string; status?: QuizStatus }): Promise<IQuizDocument[]>
+  create(data: {
     userId: string
     contentInputId?: string | null
     name?: string | null
@@ -138,39 +274,8 @@ export const Quiz = {
     questions: IQuizQuestion[]
     answers?: Record<string, string>
     status?: QuizStatus
-  }): Promise<IQuizDocument> {
-    const db = getDatabase()
-    const id = generateId()
-    const now = new Date().toISOString()
-
-    db.prepare(`
-      INSERT INTO quizzes (
-        id, userId, contentInputId, name, configuration, questions, answers,
-        status, createdAt, updatedAt
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      data.userId,
-      data.contentInputId || null,
-      data.name || null,
-      JSON.stringify(data.configuration),
-      JSON.stringify(data.questions),
-      JSON.stringify(data.answers || {}),
-      data.status || 'pending',
-      now,
-      now
-    )
-
-    const quiz = await Quiz.findById(id)
-    if (!quiz) {
-      throw new Error('Failed to create quiz')
-    }
-
-    return quiz
-  },
-
-  async update(id: string, updates: Partial<{
+  }): Promise<IQuizDocument>
+  update(id: string, updates: Partial<{
     name: string | null
     status: QuizStatus
     startTime: Date | null
@@ -183,98 +288,7 @@ export const Quiz = {
     pauseCount: number
     analysis: IQuizAnalysis | null
     answers: Record<string, string>
-  }>): Promise<IQuizDocument> {
-    const db = getDatabase()
-    const now = new Date().toISOString()
-
-    const setParts: string[] = []
-    const values: any[] = []
-
-    if (typeof updates.name !== 'undefined') {
-      setParts.push('name = ?')
-      values.push(updates.name || null)
-    }
-
-    if (typeof updates.status !== 'undefined') {
-      setParts.push('status = ?')
-      values.push(updates.status)
-    }
-
-    if (typeof updates.startTime !== 'undefined') {
-      setParts.push('startTime = ?')
-      values.push(updates.startTime ? updates.startTime.toISOString() : null)
-    }
-
-    if (typeof updates.endTime !== 'undefined') {
-      setParts.push('endTime = ?')
-      values.push(updates.endTime ? updates.endTime.toISOString() : null)
-    }
-
-    if (typeof updates.score !== 'undefined') {
-      setParts.push('score = ?')
-      values.push(updates.score !== null ? updates.score : null)
-    }
-
-    if (typeof updates.correctCount !== 'undefined') {
-      setParts.push('correctCount = ?')
-      values.push(updates.correctCount !== null ? updates.correctCount : null)
-    }
-
-    if (typeof updates.incorrectCount !== 'undefined') {
-      setParts.push('incorrectCount = ?')
-      values.push(updates.incorrectCount !== null ? updates.incorrectCount : null)
-    }
-
-    if (typeof updates.pauseReason !== 'undefined') {
-      setParts.push('pauseReason = ?')
-      values.push(updates.pauseReason || null)
-    }
-
-    if (typeof updates.pausedAt !== 'undefined') {
-      setParts.push('pausedAt = ?')
-      values.push(updates.pausedAt ? updates.pausedAt.toISOString() : null)
-    }
-
-    if (typeof updates.pauseCount !== 'undefined') {
-      setParts.push('pauseCount = ?')
-      values.push(updates.pauseCount)
-    }
-
-    if (typeof updates.analysis !== 'undefined') {
-      setParts.push('analysis = ?')
-      values.push(updates.analysis ? JSON.stringify(updates.analysis) : null)
-    }
-
-    if (typeof updates.answers !== 'undefined') {
-      setParts.push('answers = ?')
-      values.push(JSON.stringify(updates.answers))
-    }
-
-    if (setParts.length === 0) {
-      const existing = await Quiz.findById(id)
-      if (!existing) {
-        throw new Error('Quiz not found')
-      }
-      return existing
-    }
-
-    setParts.push('updatedAt = ?')
-    values.push(now)
-    values.push(id)
-
-    db.prepare(`
-      UPDATE quizzes
-      SET ${setParts.join(', ')}
-      WHERE id = ?
-    `).run(...values)
-
-    const updated = await Quiz.findById(id)
-    if (!updated) {
-      throw new Error('Quiz not found after update')
-    }
-
-    return updated
-  },
+  }>): Promise<IQuizDocument>
 }
 
 export default Quiz

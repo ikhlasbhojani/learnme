@@ -2,13 +2,11 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
-import { SetupGuard } from './components/common/SetupGuard'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { ThemeProvider } from './contexts/ThemeContext'
 import { useAuth } from './hooks/useAuth'
 import Login from './pages/Login'
 import Signup from './pages/Signup'
-import Setup from './pages/Setup'
 import Home from './pages/Home'
 import LearningModes from './pages/LearningModes'
 import QuizConfigPage from './pages/QuizConfig'
@@ -32,14 +30,6 @@ function App() {
           element={
             <Layout user={user} onLogout={logout}>
               <Routes>
-                <Route
-                  path="/setup"
-                  element={
-                    <ProtectedRoute>
-                      <Setup />
-                    </ProtectedRoute>
-                  }
-                />
                 <Route
                   path="/home"
                   element={
@@ -68,9 +58,7 @@ function App() {
                          path="/documentation-topics"
                          element={
                            <ProtectedRoute>
-                             <SetupGuard>
-                               <DocumentationTopicSelection />
-                             </SetupGuard>
+                             <DocumentationTopicSelection />
                            </ProtectedRoute>
                          }
                        />
@@ -78,9 +66,7 @@ function App() {
                          path="/generate-quiz"
                          element={
                            <ProtectedRoute>
-                             <SetupGuard>
-                               <GenerateQuiz />
-                             </SetupGuard>
+                             <GenerateQuiz />
                            </ProtectedRoute>
                          }
                        />

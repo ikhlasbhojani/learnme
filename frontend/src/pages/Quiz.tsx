@@ -42,6 +42,7 @@ export default function Quiz() {
   const [showResumePrompt, setShowResumePrompt] = useState(false)
   const [fullscreenError, setFullscreenError] = useState<string | null>(null)
   const [tabVisibilityWarning, setTabVisibilityWarning] = useState<string | null>(null)
+  const [isAutoFullscreenAttempting, setIsAutoFullscreenAttempting] = useState(false)
   const { timeRemaining, start: startTimer, pause: pauseTimer, resume: resumeTimer, stop: stopTimer, onExpire: setTimerExpire } = useTimer()
   const { isFullscreen, isSupported, enterFullscreen, exitFullscreen, error: fullscreenErrorState } = useFullscreen()
   const { isVisible, onVisibilityChange, isSupported: isTabVisibilitySupported } = useTabVisibility()
@@ -413,22 +414,30 @@ export default function Quiz() {
   useEffect(() => {
     if (quiz && quiz.status === 'in-progress' && !quizStartedRef.current && isSupported) {
       quizStartedRef.current = true
+      // Mark that we're attempting automatic fullscreen
+      setIsAutoFullscreenAttempting(true)
+      
       // Try to enter fullscreen automatically when quiz starts
       // This will work if there was a recent user gesture (like clicking "Start Quiz")
-      enterFullscreen().catch((err) => {
-        // If it fails due to permission/user gesture, show error but don't block quiz
-        const errorMsg =
-          err instanceof Error
-            ? err.message.includes('not supported')
-              ? 'Fullscreen mode is not supported. Quiz will continue in normal mode.'
-              : err.message.includes('user gesture') || err.message.includes('permission')
-              ? 'Fullscreen requires a user gesture. Click the fullscreen button to enter fullscreen mode.'
-              : 'Fullscreen permission was denied. Click the fullscreen button to enter fullscreen mode.'
-            : 'Fullscreen permission was denied. Click the fullscreen button to enter fullscreen mode.'
-        setFullscreenError(errorMsg)
-        // Don't block quiz - just show warning
-        console.warn('Fullscreen failed, continuing quiz in normal mode:', err)
-      })
+      // Suppress errors for automatic attempts - user can manually enter fullscreen if they want
+      const tryEnterFullscreen = async () => {
+        try {
+          // Try immediately to catch user gesture context
+          await enterFullscreen()
+          // Success - clear the auto attempt flag
+          setIsAutoFullscreenAttempting(false)
+        } catch (err) {
+          // Silently fail for automatic attempts - this is expected behavior
+          // Browsers require user gesture for fullscreen, so auto-entry often fails
+          // Don't show error - quiz works fine without fullscreen
+          console.log('Fullscreen auto-entry not available (requires user gesture). User can enter fullscreen manually.')
+          // Clear the flag after a brief delay to allow manual attempts
+          setTimeout(() => {
+            setIsAutoFullscreenAttempting(false)
+          }, 1000)
+        }
+      }
+      tryEnterFullscreen()
     }
   }, [quiz?.status, isSupported, enterFullscreen])
 
@@ -497,19 +506,44 @@ export default function Quiz() {
     return unsubscribe
   }, [quiz, onVisibilityChange, pauseQuiz, pauseTimer, isTabVisibilitySupported])
 
-  // Handle fullscreen errors
+  // Track if user manually attempted fullscreen (vs automatic)
+  const manualFullscreenAttemptRef = useRef(false)
+
+  // Handle fullscreen errors - only show if user manually tries to enter fullscreen
+  // Completely ignore errors from automatic fullscreen attempts
   useEffect(() => {
-    if (fullscreenErrorState) {
-      setFullscreenError(fullscreenErrorState)
+    // If we're attempting automatic fullscreen, completely ignore any errors
+    if (isAutoFullscreenAttempting) {
+      // Clear any error that might have been set
+      setFullscreenError(null)
+      return
     }
-  }, [fullscreenErrorState])
+
+    // Only show error if it's from a manual attempt (not automatic)
+    if (fullscreenErrorState && isFullscreen === false && manualFullscreenAttemptRef.current) {
+      // User manually tried to enter fullscreen and it failed
+      setFullscreenError(fullscreenErrorState)
+      const timer = setTimeout(() => {
+        setFullscreenError(null)
+        manualFullscreenAttemptRef.current = false
+      }, 4000)
+      return () => clearTimeout(timer)
+    } else if (isFullscreen) {
+      // Successfully entered fullscreen, clear any errors
+      setFullscreenError(null)
+      manualFullscreenAttemptRef.current = false
+      setIsAutoFullscreenAttempting(false)
+    }
+  }, [fullscreenErrorState, isFullscreen, isAutoFullscreenAttempting])
 
   // Clear fullscreen error when fullscreen is successfully entered
   useEffect(() => {
-    if (isFullscreen && fullscreenError) {
+    if (isFullscreen) {
       setFullscreenError(null)
+      manualFullscreenAttemptRef.current = false
+      setIsAutoFullscreenAttempting(false)
     }
-  }, [isFullscreen, fullscreenError])
+  }, [isFullscreen])
 
   // Handle fullscreen exit (per FR-020, FR-021)
   useEffect(() => {
@@ -618,23 +652,27 @@ export default function Quiz() {
   }
 
   const handleEnterFullscreen = async () => {
+    // Mark this as a manual attempt so we show errors if it fails
+    manualFullscreenAttemptRef.current = true
     try {
       await enterFullscreen()
-      // Error will be cleared by the useEffect that watches isFullscreen
+      setFullscreenError(null) // Clear any previous errors on success
+      manualFullscreenAttemptRef.current = false
     } catch (err) {
       const errorMsg =
         err instanceof Error
           ? err.message.includes('not supported')
-            ? 'Fullscreen mode is not supported in your browser.'
-            : err.message.includes('user gesture') || err.message.includes('permission')
-            ? 'Fullscreen permission was denied. Please allow fullscreen in your browser settings or try again.'
-            : 'Failed to enter fullscreen mode. Please try again.'
-          : 'Failed to enter fullscreen mode. Please try again.'
+            ? 'Fullscreen mode is not supported in your browser. Quiz will continue normally.'
+            : err.message.includes('user gesture') || err.message.includes('permission') || err.message.includes('Permissions check failed')
+            ? 'Fullscreen requires user permission. Please allow fullscreen in your browser settings or try again.'
+            : 'Unable to enter fullscreen mode. Quiz will continue normally.'
+          : 'Unable to enter fullscreen mode. Quiz will continue normally.'
       setFullscreenError(errorMsg)
-      // Auto-clear error after 5 seconds
+      // Auto-clear error after 4 seconds
       setTimeout(() => {
         setFullscreenError((prev) => (prev === errorMsg ? null : prev))
-      }, 5000)
+        manualFullscreenAttemptRef.current = false
+      }, 4000)
     }
   }
 
@@ -738,22 +776,28 @@ export default function Quiz() {
 
   return (
     <>
-      {fullscreenError && (
-        <div
+      {fullscreenError && !isAutoFullscreenAttempting && (
+        <motion.div
+          initial={{ opacity: 0, y: -50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -50 }}
           style={{
             position: 'fixed',
             top: 0,
             left: 0,
             right: 0,
-            backgroundColor: theme.colors.error,
+            backgroundColor: colors.warning || '#f59e0b',
             color: 'white',
             padding: theme.spacing.md,
             textAlign: 'center',
             zIndex: 10000,
+            cursor: 'pointer',
           }}
+          onClick={() => setFullscreenError(null)}
+          title="Click to dismiss"
         >
           {fullscreenError}
-        </div>
+        </motion.div>
       )}
       {tabVisibilityWarning && (
         <div

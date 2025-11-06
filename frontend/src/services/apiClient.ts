@@ -17,6 +17,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     baseHeaders.set('Content-Type', 'application/json')
   }
 
+  // Add Authorization header with token from localStorage if available
+  const token = localStorage.getItem('auth_token')
+  if (token) {
+    baseHeaders.set('Authorization', `Bearer ${token}`)
+  }
+
   if (headers) {
     const provided = new Headers(headers as HeadersInit)
     provided.forEach((value, key) => {
@@ -46,7 +52,34 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   const payload = isJson ? await response.json() : await response.text()
 
   if (!response.ok) {
-    const message = isJson && payload?.message ? payload.message : response.statusText || 'Request failed'
+    // Try to extract user-friendly error message from response
+    let message = response.statusText || 'Request failed'
+
+    if (isJson && payload) {
+      // Check for common error message fields
+      if (typeof payload === 'object') {
+        if ('message' in payload && typeof payload.message === 'string') {
+          message = payload.message
+        } else if ('error' in payload && typeof payload.error === 'string') {
+          message = payload.error
+        } else if ('errors' in payload && Array.isArray(payload.errors) && payload.errors.length > 0) {
+          // Handle validation errors array
+          message = payload.errors[0]?.message || payload.errors[0] || message
+        }
+      }
+    }
+
+    // Handle 401 errors - clear stale auth and force re-login
+    if (response.status === 401) {
+      localStorage.removeItem('auth_token')
+      localStorage.removeItem('user')
+      
+      // Only redirect to login if not already on auth pages
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
+        window.location.href = '/login'
+      }
+    }
+
     const error = new Error(message) as Error & { status?: number }
     error.status = response.status
     throw error

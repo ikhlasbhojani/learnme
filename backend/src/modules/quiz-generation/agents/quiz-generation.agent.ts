@@ -128,16 +128,21 @@ Requirements:
 6. Questions should be clear and unambiguous
 7. Avoid trick questions or overly ambiguous wording
 
-Format your response as a JSON array with this exact structure:
+Format your response as a valid JSON array with this exact structure (NO trailing commas, NO comments):
 [
   {
     "text": "Question text here?",
     "options": ["Option A", "Option B", "Option C", "Option D"],
     "correctAnswer": "Option A",
     "explanation": "Explanation of why this answer is correct"
-  },
-  ...
+  }
 ]
+
+IMPORTANT: 
+- Return ONLY valid JSON - no markdown, no code blocks, no extra text
+- Ensure all strings are properly quoted
+- NO trailing commas after the last element in arrays or objects
+- Make sure the JSON is complete and well-formed
 
 Content:
 ${content.substring(0, 30000)}${content.length > 30000 ? '... (content truncated)' : ''}
@@ -261,9 +266,24 @@ Generate the questions now:`
           return null
         }
         
-        const completeArray = findCompleteArray(jsonCandidate)
+        let completeArray = findCompleteArray(jsonCandidate)
         if (completeArray) {
           try {
+            // Additional JSON cleaning before parsing
+            completeArray = completeArray
+              // Remove trailing commas before closing brackets/braces
+              .replace(/,(\s*[\]}])/g, '$1')
+              // Fix common quote issues
+              .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+              // Remove any control characters
+              .replace(/[\x00-\x1F\x7F]/g, '')
+              // Fix double commas
+              .replace(/,,+/g, ',')
+              // Remove commas before closing array
+              .replace(/,\s*\]/g, ']')
+              // Remove commas before closing object
+              .replace(/,\s*\}/g, '}')
+            
             const parsed = JSON.parse(completeArray)
             if (Array.isArray(parsed) && parsed.length > 0) {
               return parsed
@@ -280,6 +300,25 @@ Generate the questions now:`
           } catch (parseError) {
             // JSON is still invalid, try alternative extraction
             console.warn('JSON parse failed after repair, trying text parsing:', parseError)
+            // Try one more time with aggressive cleaning
+            try {
+              const aggressiveCleaned = this.aggressiveJsonClean(completeArray)
+              const parsed = JSON.parse(aggressiveCleaned)
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed
+                  .filter((q: any) => q && (q.text || q.question))
+                  .map((q: any, index: number) => ({
+                    id: `q-${Date.now()}-${index}`,
+                    text: q.text || q.question || '',
+                    options: Array.isArray(q.options) ? q.options : [],
+                    correctAnswer: q.correctAnswer || q.answer || '',
+                    difficulty,
+                    explanation: q.explanation || null,
+                  }))
+              }
+            } catch (finalError) {
+              console.warn('Aggressive JSON clean also failed, falling back to text parsing')
+            }
           }
         }
       }
@@ -289,6 +328,46 @@ Generate the questions now:`
     } catch (error) {
       console.warn('Failed to parse JSON, trying text parsing:', error)
       return this.parseQuestionsFromText(generatedText, difficulty)
+    }
+  }
+
+  private aggressiveJsonClean(jsonStr: string): string {
+    try {
+      // Remove any text before first [ and after last ]
+      const firstBracket = jsonStr.indexOf('[')
+      const lastBracket = jsonStr.lastIndexOf(']')
+      
+      if (firstBracket === -1 || lastBracket === -1 || firstBracket >= lastBracket) {
+        throw new Error('No valid array structure found')
+      }
+      
+      let cleaned = jsonStr.substring(firstBracket, lastBracket + 1)
+      
+      // More aggressive cleaning
+      cleaned = cleaned
+        // Remove trailing commas
+        .replace(/,\s*([}\]])/g, '$1')
+        // Fix unquoted keys
+        .replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+        // Remove duplicate commas
+        .replace(/,+/g, ',')
+        // Remove commas at start of objects/arrays
+        .replace(/(\[|\{)\s*,/g, '$1')
+        // Fix newlines in strings (replace with space)
+        .replace(/"\s*\n\s*"/g, '" "')
+        // Remove any standalone commas
+        .replace(/,\s*,/g, ',')
+        // Fix missing commas between objects (aggressive - might cause issues but worth a try)
+        .replace(/\}\s*\{/g, '},{')
+        // Fix missing commas between values
+        .replace(/\]\s*\[/g, '],[')
+        // Remove any control characters except newlines in strings
+        .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '')
+      
+      return cleaned
+    } catch (error) {
+      console.warn('Aggressive JSON clean failed:', error)
+      return jsonStr
     }
   }
 

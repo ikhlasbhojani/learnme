@@ -30,7 +30,7 @@ export async function registerUser(input: SignupInput): Promise<AuthResponse> {
     themePreference: input.themePreference ?? null,
   })
 
-  const token = generateAuthToken(user.id)
+  const token = generateAuthToken(user._id.toString())
 
   return {
     user: user.toJSON(),
@@ -49,8 +49,8 @@ export async function loginUser(input: LoginInput): Promise<AuthResponse> {
     throw new AppError('Invalid credentials', 401)
   }
 
-  const updatedUser = await User.update(user.id, { lastLoginAt: new Date() })
-  const token = generateAuthToken(updatedUser.id)
+  const updatedUser = await User.update(user._id.toString(), { lastLoginAt: new Date() })
+  const token = generateAuthToken(updatedUser._id.toString())
 
   return {
     user: updatedUser.toJSON(),

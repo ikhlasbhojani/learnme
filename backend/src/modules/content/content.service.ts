@@ -1,8 +1,8 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { AppError } from '../../utils/appError'
-import { getAIConfig } from '../setup/setup.service'
 import { createAIProvider } from '../../services/ai/ai-provider.factory'
+import { appEnv } from '../../config/env'
 
 export interface DocumentationTopic {
   id: string
@@ -431,9 +431,16 @@ async function organizeLinksIntoTopics(
   links: Array<{ url: string; text: string; title?: string }>
 ): Promise<DocumentationTopic[]> {
   try {
-    const config = await getAIConfig(userId)
-    if (!config) {
-      throw new AppError('AI configuration not found. Please set up your API key.', 400)
+    // Get AI config from environment variables
+    const config = {
+      provider: appEnv.aiProvider,
+      model: appEnv.aiModel,
+      apiKey: appEnv.aiApiKey,
+      baseUrl: appEnv.aiBaseUrl,
+    }
+    
+    if (!config.apiKey) {
+      throw new AppError('AI API key not configured. Please set AI_API_KEY in your .env file.', 500)
     }
 
     const aiProvider = createAIProvider(config)

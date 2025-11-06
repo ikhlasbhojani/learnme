@@ -60,16 +60,32 @@ export function useAuth(): UseAuthReturn {
   // Load user from backend on mount
   useEffect(() => {
     const loadUser = async () => {
+      const stored = getStorageItem<StoredUser>(STORAGE_KEYS.USER)
+      
+      // If we have a user in storage, trust it immediately
+      if (stored) {
+        const deserializedUser = deserializeUser(stored)
+        setUser(deserializedUser)
+        setLoading(false)
+        
+        // Don't verify with backend immediately after login - give cookie time to settle
+        // This prevents clearing user state if cookie isn't ready yet
+        return
+      }
+
+      // No stored user - try to fetch from backend (for page refresh with cookie)
       try {
         const currentUser = await authService.fetchCurrentUser()
         if (currentUser) {
           setStorageItem(STORAGE_KEYS.USER, serializeUser(currentUser))
-        } else {
-          removeStorageItem(STORAGE_KEYS.USER)
+          setUser(currentUser)
         }
-        setUser(currentUser)
       } catch (err) {
-        console.error('Failed to load current user', err)
+        // No stored user and fetch failed - user is not authenticated
+        // Don't log 401 as error - it's expected when not logged in
+        if ((err as { status?: number }).status !== 401) {
+          console.error('Failed to load current user', err)
+        }
       } finally {
         setLoading(false)
       }
@@ -126,9 +142,6 @@ export function useAuth(): UseAuthReturn {
         setStorageItem(STORAGE_KEYS.USER, serializeUser(newUser))
         setLoading(false)
 
-        // Navigate to home
-        navigate('/home')
-
         return {
           success: true,
           user: newUser,
@@ -143,7 +156,7 @@ export function useAuth(): UseAuthReturn {
         }
       }
     },
-    [navigate]
+    []
   )
 
   const login = useCallback(
@@ -153,12 +166,11 @@ export function useAuth(): UseAuthReturn {
 
       try {
         const loggedInUser = await authService.login({ email, password })
+        
+        // Set user state and storage
         setUser(loggedInUser)
         setStorageItem(STORAGE_KEYS.USER, serializeUser(loggedInUser))
         setLoading(false)
-
-        // Navigate to home
-        navigate('/home')
 
         return {
           success: true,
@@ -174,19 +186,21 @@ export function useAuth(): UseAuthReturn {
         }
       }
     },
-    [navigate]
+    []
   )
 
   const logout = useCallback(async () => {
+    // Clear state first for immediate UI feedback
+    setUser(null)
+    removeStorageItem(STORAGE_KEYS.USER)
+    
     try {
       await authService.logout()
     } catch (err) {
-      console.error('Failed to logout', err)
-    } finally {
-      setUser(null)
-      removeStorageItem(STORAGE_KEYS.USER)
-      navigate('/login')
+      console.error('Failed to logout on backend', err)
     }
+    
+    navigate('/login')
   }, [navigate])
 
   const updateProfile = useCallback(

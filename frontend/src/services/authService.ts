@@ -36,17 +36,27 @@ function mapUser(response: UserResponse): User {
 }
 
 export async function signup(payload: SignupPayload): Promise<User> {
-  const response = await apiClient.post<UserResponse>('/auth/signup', payload)
-  return mapUser(response)
+  const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/signup', payload)
+  // Store token in localStorage for Authorization header
+  if (response.token) {
+    localStorage.setItem('auth_token', response.token)
+  }
+  return mapUser(response.user)
 }
 
 export async function login(payload: AuthPayload): Promise<User> {
-  const response = await apiClient.post<UserResponse>('/auth/login', payload)
-  return mapUser(response)
+  const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/login', payload)
+  // Store token in localStorage for Authorization header
+  if (response.token) {
+    localStorage.setItem('auth_token', response.token)
+  }
+  return mapUser(response.user)
 }
 
 export async function logout(): Promise<void> {
   await apiClient.post('/auth/logout')
+  // Clear token from localStorage
+  localStorage.removeItem('auth_token')
 }
 
 export async function fetchCurrentUser(): Promise<User | null> {

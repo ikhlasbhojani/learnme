@@ -1,47 +1,39 @@
-import Database from 'better-sqlite3'
-import path from 'path'
-import fs from 'fs'
-import { initializeSchema } from './schema'
+import mongoose from 'mongoose'
+import { appEnv } from './env'
 
-let db: Database.Database | null = null
+let isConnected = false
 
-export function getDatabase(): Database.Database {
-  if (!db) {
-    throw new Error('Database not initialized. Call connectDatabase() first.')
+export async function connectDatabase(): Promise<void> {
+  if (isConnected) {
+    return
   }
-  return db
-}
 
-export function connectDatabase(): Database.Database {
   try {
-    // Determine database path
-    const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'learnme.db')
+    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/learnme'
     
-    // Ensure data directory exists
-    const dbDir = path.dirname(dbPath)
-    if (!fs.existsSync(dbDir)) {
-      fs.mkdirSync(dbDir, { recursive: true })
-    }
+    await mongoose.connect(mongoUri, {
+      // These options are recommended for Mongoose 6+
+    })
 
-    // Open database connection
-    db = new Database(dbPath)
-    
-    // Initialize schema
-    initializeSchema(db)
-    
-    console.log(`Connected to SQLite database at ${dbPath}`)
-    return db
+    isConnected = true
+    console.log(`Connected to MongoDB at ${mongoUri}`)
   } catch (error) {
-    console.error('Failed to connect to SQLite database', error)
+    console.error('Failed to connect to MongoDB:', error)
     process.exit(1)
   }
 }
 
-export function closeDatabase(): void {
-  if (db) {
-    db.close()
-    db = null
+export async function closeDatabase(): Promise<void> {
+  if (isConnected) {
+    await mongoose.connection.close()
+    isConnected = false
     console.log('Database connection closed')
   }
 }
 
+export function getDatabase(): typeof mongoose {
+  if (!isConnected) {
+    throw new Error('Database not initialized. Call connectDatabase() first.')
+  }
+  return mongoose
+}

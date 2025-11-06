@@ -1,6 +1,6 @@
 import { AIProvider } from '../../../services/ai/ai-provider.interface'
 import { createAIProvider } from '../../../services/ai/ai-provider.factory'
-import { getAIConfig } from '../../setup/setup.service'
+import { appEnv } from '../../../config/env'
 
 export interface AgentContext {
   input: any
@@ -31,15 +31,23 @@ export abstract class BaseAgent {
     // AI provider will be initialized when needed with userId
   }
 
-  protected async initializeAIProvider(userId: string) {
-    const config = await getAIConfig(userId)
-    if (!config) {
-      throw new Error('AI configuration not found. Please set up your API key in the setup page.')
+  protected async initializeAIProvider(userId?: string) {
+    // Get AI config from environment variables
+    const config = {
+      provider: appEnv.aiProvider,
+      model: appEnv.aiModel,
+      apiKey: appEnv.aiApiKey,
+      baseUrl: appEnv.aiBaseUrl,
     }
+    
+    if (!config.apiKey) {
+      throw new Error('AI API key not configured. Please set AI_API_KEY in your .env file.')
+    }
+    
     this.aiProvider = createAIProvider(config)
   }
 
-  protected async ensureAIProvider(userId: string) {
+  protected async ensureAIProvider(userId?: string) {
     if (!this.aiProvider) {
       await this.initializeAIProvider(userId)
     }

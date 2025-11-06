@@ -14,7 +14,7 @@ export interface AuthenticatedRequest extends Request {
 
 export async function authenticate(
   req: AuthenticatedRequest,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ) {
   try {
@@ -25,9 +25,17 @@ export async function authenticate(
     }
 
     const decoded = jwt.verify(token, appEnv.jwtSecret) as JwtPayload
-
+    
     const user = await User.findById(decoded.userId)
+    
     if (!user) {
+      // Clear the invalid cookie if it exists
+      res.clearCookie('token', {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: false,
+        path: '/',
+      })
       return next(new AppError('User not found', 401))
     }
 

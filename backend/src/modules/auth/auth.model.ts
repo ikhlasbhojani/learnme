@@ -1,5 +1,4 @@
-import { getDatabase } from '../../config/database'
-import { generateId } from '../../config/schema'
+import mongoose, { Schema, Document, Model } from 'mongoose'
 
 export type ThemePreference = 'light' | 'dark' | 'blue' | 'green'
 
@@ -8,155 +7,131 @@ export interface IUser {
   email: string
   passwordHash: string
   themePreference?: ThemePreference | null
-  aiProvider?: string | null
-  aiModel?: string | null
-  aiApiKey?: string | null
   lastLoginAt?: Date | null
   createdAt: Date
   updatedAt: Date
 }
 
-export interface IUserDocument extends IUser {
+export interface IUserDocument extends IUser, Document {
   toJSON(): Omit<IUser, 'passwordHash'>
 }
 
-/**
- * Convert database row to User object
- */
-function rowToUser(row: any): IUserDocument {
-  return {
-    id: row.id,
-    email: row.email,
-    passwordHash: row.passwordHash,
-    themePreference: row.themePreference || null,
-    aiProvider: row.aiProvider || null,
-    aiModel: row.aiModel || null,
-    aiApiKey: row.aiApiKey || null,
-    lastLoginAt: row.lastLoginAt ? new Date(row.lastLoginAt) : null,
-    createdAt: new Date(row.createdAt),
-    updatedAt: new Date(row.updatedAt),
-    toJSON() {
-      const { passwordHash, aiApiKey, ...user } = this // Don't expose password or API key
-      return user
+const userSchema = new Schema<IUserDocument>(
+  {
+    _id: {
+      type: String,
+      default: () => `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
+    },
+    passwordHash: {
+      type: String,
+      required: true,
+    },
+    themePreference: {
+      type: String,
+      enum: ['light', 'dark', 'blue', 'green'],
+      default: null,
+    },
+    lastLoginAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+    _id: false,
+    id: true,
+    toJSON: {
+      transform: function (doc, ret) {
+        delete ret.passwordHash
+        delete ret.__v
+        ret.id = ret._id
+        delete ret._id
+        return ret
+      },
     },
   }
+)
+
+// Method to convert to JSON (excluding sensitive fields)
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject()
+  delete obj.passwordHash
+  delete obj.__v
+  obj.id = obj._id
+  delete obj._id
+  return obj
 }
 
-export const User = {
-  async findOne(query: { email?: string; id?: string }): Promise<IUserDocument | null> {
-    const db = getDatabase()
-    let row: any
+const UserModel = mongoose.model<IUserDocument>('User', userSchema)
 
-    if (query.email) {
-      row = db.prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)').get(query.email)
-    } else if (query.id) {
-      row = db.prepare('SELECT * FROM users WHERE id = ?').get(query.id)
-    } else {
-      return null
-    }
+// Static methods for compatibility with existing code - wrap original Mongoose methods
+const originalFindOne = UserModel.findOne.bind(UserModel)
+const originalFindById = UserModel.findById.bind(UserModel)
+const originalCreate = UserModel.create.bind(UserModel)
 
-    return row ? rowToUser(row) : null
-  },
+UserModel.findOne = async function (query: { email?: string; id?: string }): Promise<IUserDocument | null> {
+  if (query.email) {
+    return await originalFindOne({ email: query.email.toLowerCase() })
+  } else if (query.id) {
+    return await originalFindById(query.id)
+  }
+  return null
+}
 
-  async findById(id: string): Promise<IUserDocument | null> {
-    return User.findOne({ id })
-  },
+UserModel.findById = async function (id: string): Promise<IUserDocument | null> {
+  // For custom string _id fields, we need to query by _id directly
+  // Use the original Mongoose findOne, not our custom override
+  return await originalFindOne({ _id: id })
+}
 
-  async create(data: {
+UserModel.create = async function (data: {
+  email: string
+  passwordHash: string
+  themePreference?: ThemePreference | null
+}): Promise<IUserDocument> {
+  return await originalCreate({
+    _id: `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`,
+    email: data.email.toLowerCase(),
+    passwordHash: data.passwordHash,
+    themePreference: data.themePreference || null,
+  })
+}
+
+UserModel.update = async function (id: string, updates: {
+  lastLoginAt?: Date | null
+  themePreference?: ThemePreference | null
+}): Promise<IUserDocument> {
+  const updated = await UserModel.findByIdAndUpdate(
+    id,
+    { $set: updates },
+    { new: true, runValidators: true }
+  )
+  if (!updated) {
+    throw new Error('User not found')
+  }
+  return updated
+}
+
+// Export with static methods
+export const User = UserModel as typeof UserModel & {
+  findOne(query: { email?: string; id?: string }): Promise<IUserDocument | null>
+  findById(id: string): Promise<IUserDocument | null>
+  create(data: {
     email: string
     passwordHash: string
     themePreference?: ThemePreference | null
-  }): Promise<IUserDocument> {
-    const db = getDatabase()
-    const id = generateId()
-    const now = new Date().toISOString()
-
-    db.prepare(`
-      INSERT INTO users (id, email, passwordHash, themePreference, aiProvider, aiModel, aiApiKey, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      id,
-      data.email.toLowerCase(),
-      data.passwordHash,
-      data.themePreference || null,
-      null, // aiProvider
-      null, // aiModel
-      null, // aiApiKey
-      now,
-      now
-    )
-
-    const user = await User.findById(id)
-    if (!user) {
-      throw new Error('Failed to create user')
-    }
-
-    return user
-  },
-
-  async update(id: string, updates: {
+  }): Promise<IUserDocument>
+  update(id: string, updates: {
     lastLoginAt?: Date | null
     themePreference?: ThemePreference | null
-    aiProvider?: string | null
-    aiModel?: string | null
-    aiApiKey?: string | null
-  }): Promise<IUserDocument> {
-    const db = getDatabase()
-    const now = new Date().toISOString()
-
-    const setParts: string[] = []
-    const values: any[] = []
-
-    if (typeof updates.lastLoginAt !== 'undefined') {
-      setParts.push('lastLoginAt = ?')
-      values.push(updates.lastLoginAt ? updates.lastLoginAt.toISOString() : null)
-    }
-
-    if (typeof updates.themePreference !== 'undefined') {
-      setParts.push('themePreference = ?')
-      values.push(updates.themePreference || null)
-    }
-
-    if (typeof updates.aiProvider !== 'undefined') {
-      setParts.push('aiProvider = ?')
-      values.push(updates.aiProvider || null)
-    }
-
-    if (typeof updates.aiModel !== 'undefined') {
-      setParts.push('aiModel = ?')
-      values.push(updates.aiModel || null)
-    }
-
-    if (typeof updates.aiApiKey !== 'undefined') {
-      setParts.push('aiApiKey = ?')
-      values.push(updates.aiApiKey || null)
-    }
-
-    if (setParts.length === 0) {
-      const existing = await User.findById(id)
-      if (!existing) {
-        throw new Error('User not found')
-      }
-      return existing
-    }
-
-    setParts.push('updatedAt = ?')
-    values.push(now)
-    values.push(id)
-
-    db.prepare(`
-      UPDATE users
-      SET ${setParts.join(', ')}
-      WHERE id = ?
-    `).run(...values)
-
-    const updated = await User.findById(id)
-    if (!updated) {
-      throw new Error('User not found after update')
-    }
-
-    return updated
-  },
+  }): Promise<IUserDocument>
 }
 
 export default User
