@@ -14,10 +14,6 @@ const envSchema = z
     MONGODB_URI: z.string().default('mongodb://localhost:27017/learnme'),
     JWT_SECRET: z.string().min(10, 'JWT_SECRET must be at least 10 characters').default('your-secret-key-change-in-production'),
     CORS_ORIGIN: z.string().optional(),
-    AI_PROVIDER: z.string().default('gemini'),
-    AI_MODEL: z.string().default('gemini-1.5-flash'),
-    AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
-    AI_BASE_URL: z.string().optional(),
   })
   .passthrough()
 
@@ -36,10 +32,6 @@ export const appEnv = {
   mongodbUri: env.MONGODB_URI,
   jwtSecret: env.JWT_SECRET,
   corsOrigin: env.CORS_ORIGIN ?? 'http://localhost:5173',
-  aiProvider: env.AI_PROVIDER,
-  aiModel: env.AI_MODEL,
-  aiApiKey: env.AI_API_KEY,
-  aiBaseUrl: env.AI_BASE_URL,
   isProduction: env.NODE_ENV === 'production',
 }
 

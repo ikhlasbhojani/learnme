@@ -89,6 +89,8 @@ const quizQuestionSchema = new Schema<IQuizQuestion>(
       required: true,
     },
     explanation: { type: String, default: null },
+    codeSnippet: { type: String, default: null },
+    imageReference: { type: String, default: null },
   },
   { _id: false }
 )

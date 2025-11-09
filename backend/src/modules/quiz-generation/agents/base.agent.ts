@@ -1,6 +1,5 @@
 import { AIProvider } from '../../../services/ai/ai-provider.interface'
-import { createAIProvider } from '../../../services/ai/ai-provider.factory'
-import { appEnv } from '../../../config/env'
+import { AgentsProvider } from '../../../services/ai/providers/agents.provider'
 
 export interface AgentContext {
   input: any
@@ -32,19 +31,14 @@ export abstract class BaseAgent {
   }
 
   protected async initializeAIProvider(userId?: string) {
-    // Get AI config from environment variables
-    const config = {
-      provider: appEnv.aiProvider,
-      model: appEnv.aiModel,
-      apiKey: appEnv.aiApiKey,
-      baseUrl: appEnv.aiBaseUrl,
+    // Directly use AgentsProvider with OpenAI Agents SDK
+    // Following OpenAI Agents SDK quickstart: https://openai.github.io/openai-agents-js/guides/quickstart/
+    // SDK automatically reads OPENAI_API_KEY from environment
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.')
     }
     
-    if (!config.apiKey) {
-      throw new Error('AI API key not configured. Please set AI_API_KEY in your .env file.')
-    }
-    
-    this.aiProvider = createAIProvider(config)
+    this.aiProvider = new AgentsProvider()
   }
 
   protected async ensureAIProvider(userId?: string) {
