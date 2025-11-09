@@ -4,6 +4,7 @@ from app.config.settings import settings
 from app.modules.quiz.router import router as quiz_router
 from app.modules.quiz_generation.router import router as quiz_generation_router
 from app.modules.quiz_analysis.router import router as quiz_analysis_router
+from app.modules.book.router import router as book_router
 
 app = FastAPI(
     title="LearnMe Python Service",
@@ -29,6 +30,7 @@ async def health():
 app.include_router(quiz_router, prefix="/api/quiz", tags=["quiz"])
 app.include_router(quiz_generation_router, prefix="/api/quiz/generation", tags=["quiz-generation"])
 app.include_router(quiz_analysis_router, prefix="/api/quiz/analysis", tags=["quiz-analysis"])
+app.include_router(book_router, prefix="/api/books", tags=["books"])
 
 if __name__ == "__main__":
     import uvicorn

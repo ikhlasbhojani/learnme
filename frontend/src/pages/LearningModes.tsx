@@ -83,13 +83,55 @@ export default function LearningModes() {
           </Button>
         </motion.div>
 
+        {/* Mind Map Mode - Enabled */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          whileHover={{ scale: 1.02 }}
+          style={{
+            backgroundColor: colors.cardBg,
+            padding: theme.spacing['2xl'],
+            borderRadius: theme.borderRadius.xl,
+            boxShadow: theme.shadows.lg,
+            border: `2px solid ${colors.primary}`,
+          }}
+        >
+          <h2
+            style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.semibold,
+              marginBottom: theme.spacing.md,
+              color: colors.text,
+            }}
+          >
+            Mind Map
+          </h2>
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.sm,
+              color: colors.gray[500],
+              marginBottom: theme.spacing.lg,
+            }}
+          >
+            Explore interactive mind maps of learning materials and generate quizzes from any chapter
+          </p>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={() => navigate('/books')}
+            style={{ width: '100%' }}
+          >
+            Explore Mind Maps
+          </Button>
+        </motion.div>
+
         {/* Coming Soon Modes */}
-        {['Create Notes', 'Questions & Answers', 'Mind Map'].map((mode, index) => (
+        {['Create Notes', 'Questions & Answers'].map((mode, index) => (
           <motion.div
             key={mode}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 * (index + 1) }}
+            transition={{ delay: 0.1 * (index + 2) }}
             style={{
               backgroundColor: theme.colors.neutral[50],
               padding: theme.spacing['2xl'],

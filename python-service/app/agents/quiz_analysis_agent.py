@@ -6,8 +6,7 @@ from agents import function_tool
 from app.agents.base_agent import BaseAgent, AgentContext, AgentResult
 
 
-@function_tool
-def calculate_difficulty_stats(questions: List[Dict], answers: Dict[str, str]) -> Dict[str, Dict[str, int]]:
+def calculate_difficulty_stats(questions: list, answers: dict) -> dict:
     """Calculate performance statistics by difficulty level. Returns dict with difficulty as key and stats as value."""
     difficulty_stats = {}
     for question in questions:
@@ -48,8 +47,7 @@ class QuizAnalysisAgent(BaseAgent):
             - Encouragement and positive reinforcement
             - Learning path recommendations
             
-            Use the calculate_difficulty_stats tool to analyze performance by difficulty level.""",
-            tools=[calculate_difficulty_stats]
+            Analyze performance by difficulty level and provide comprehensive feedback."""
         )
     
     async def run(self, context: AgentContext) -> AgentResult:
@@ -170,11 +168,16 @@ class QuizAnalysisAgent(BaseAgent):
             for i, q in enumerate(incorrect_questions)
         ])
         
+        # Build original content context string separately to avoid f-string backslash issue
+        original_context_str = ""
+        if original_content:
+            truncated = original_content[:2000]
+            ellipsis = "..." if len(original_content) > 2000 else ""
+            original_context_str = f"Original Content Context:\n{truncated}{ellipsis}\n\n"
+        
         prompt = f"""Analyze the following questions that were answered incorrectly and identify the specific topics, concepts, or subject areas that the user needs to review.
 
-{original_content and f'Original Content Context:\n{original_content[:2000]}{"..." if len(original_content) > 2000 else ""}\n\n' or ''}
-
-Incorrect Questions:
+{original_context_str}Incorrect Questions:
 {questions_text}
 
 Based on these incorrect answers, identify 5-10 specific topics, concepts, or subject areas that the user should focus on reviewing. Be specific and actionable.
@@ -204,6 +207,34 @@ Return ONLY a JSON array of topic strings, no other text:
             print(f"Failed to extract topics: {e}")
         
         return []
+    
+    def _build_correct_answers_section(self, correct_questions: List[Dict]) -> str:
+        """Build correct answers section string"""
+        if not correct_questions:
+            return ""
+        newline = chr(10)
+        questions_text = newline.join([
+            f"{i+1}. [{q['difficulty']}] {q['question'][:200]}{'...' if len(q['question']) > 200 else ''}{newline}   ✅ Correctly answered: {q['userAnswer']}"
+            for i, q in enumerate(correct_questions[:5])
+        ])
+        return f"{newline}Correct Answers (showing strengths):{newline}{questions_text}"
+    
+    def _build_topics_section(self, topics_to_review: List[str]) -> str:
+        """Build topics to review section string"""
+        if not topics_to_review:
+            return ""
+        newline = chr(10)
+        topics_text = newline.join([f"{i+1}. {t}" for i, t in enumerate(topics_to_review)])
+        return f"{newline}=== IDENTIFIED TOPICS TO REVIEW ==={newline}{topics_text}{newline}"
+    
+    def _build_original_content_section(self, original_content: Optional[str]) -> str:
+        """Build original content context section string"""
+        if not original_content:
+            return ""
+        newline = chr(10)
+        truncated = original_content[:3000]
+        suffix = newline + "... (content truncated)" if len(original_content) > 3000 else ""
+        return f"{newline}=== ORIGINAL CONTENT CONTEXT ==={newline}{truncated}{suffix}{newline}"
     
     def _build_analysis_prompt(
         self,
@@ -245,13 +276,13 @@ Breakdown by Difficulty:
 
 === SAMPLE QUESTIONS FOR ANALYSIS ===
 Incorrect Answers (showing patterns):
-{chr(10).join([f"{i+1}. [{q['difficulty']}] {q['question']}\n   ❌ Your Answer: {q['userAnswer']}\n   ✅ Correct Answer: {q['correctAnswer']}" for i, q in enumerate(incorrect_questions[:10])])}
+{chr(10).join([f"{i+1}. [{q['difficulty']}] {q['question']}{chr(10)}   ❌ Your Answer: {q['userAnswer']}{chr(10)}   ✅ Correct Answer: {q['correctAnswer']}" for i, q in enumerate(incorrect_questions[:10])])}
 
-{correct_questions and f'\nCorrect Answers (showing strengths):\n{chr(10).join([f"{i+1}. [{q['difficulty']}] {q['question'][:200]}{'...' if len(q['question']) > 200 else ''}\n   ✅ Correctly answered: {q['userAnswer']}" for i, q in enumerate(correct_questions[:5])])}' or ''}
+{self._build_correct_answers_section(correct_questions) if correct_questions else ''}
 
-{topics_to_review and f'\n=== IDENTIFIED TOPICS TO REVIEW ===\n{chr(10).join([f"{i+1}. {t}" for i, t in enumerate(topics_to_review)])}\n' or ''}
+{self._build_topics_section(topics_to_review) if topics_to_review else ''}
 
-{original_content and f'\n=== ORIGINAL CONTENT CONTEXT ===\n{original_content[:3000]}{chr(10) + "... (content truncated)" if len(original_content) > 3000 else ""}\n' or ''}
+{self._build_original_content_section(original_content) if original_content else ''}
 
 === ANALYSIS REQUIREMENTS ===
 Provide a comprehensive analysis in this EXACT JSON format (NO trailing commas, valid JSON only):

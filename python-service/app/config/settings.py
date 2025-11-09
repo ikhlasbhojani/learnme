@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     ai_api_key: str = Field(default="", description="OpenAI API key (can also use OPENAI_API_KEY)")
     ai_base_url: Optional[str] = None
     
+    # Book service path
+    book_root_path: Optional[str] = Field(default=None, description="Path to ai-native-software-development folder")
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

@@ -15,6 +15,9 @@ import GenerateQuiz from './pages/GenerateQuiz'
 import Quiz from './pages/Quiz'
 import Assessment from './pages/Assessment'
 import QuizHistory from './pages/QuizHistory'
+import BookLibrary from './pages/BookLibrary'
+import BookMindMap from './pages/BookMindMap'
+import BookReader from './pages/BookReader'
 
 function App() {
   const { user, logout } = useAuth()
@@ -91,6 +94,30 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <QuizHistory />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/books"
+                  element={
+                    <ProtectedRoute>
+                      <BookLibrary />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/books/mindmap"
+                  element={
+                    <ProtectedRoute>
+                      <BookMindMap />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/books/reader"
+                  element={
+                    <ProtectedRoute>
+                      <BookReader />
                     </ProtectedRoute>
                   }
                 />

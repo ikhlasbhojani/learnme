@@ -1,5 +1,4 @@
-import { AIProvider } from '../../../services/ai/ai-provider.interface'
-import { AgentsProvider } from '../../../services/ai/providers/agents.provider'
+import OpenAI from 'openai'
 
 export interface AgentContext {
   input: any
@@ -19,7 +18,7 @@ export interface AgentTool {
 }
 
 export abstract class BaseAgent {
-  protected aiProvider: AIProvider | null = null
+  protected openai: OpenAI | null = null
   protected tools: AgentTool[] = []
   protected name: string
   protected instructions: string
@@ -27,23 +26,22 @@ export abstract class BaseAgent {
   constructor(name: string, instructions: string) {
     this.name = name
     this.instructions = instructions
-    // AI provider will be initialized when needed with userId
+    // OpenAI client will be initialized when needed
   }
 
-  protected async initializeAIProvider(userId?: string) {
-    // Directly use AgentsProvider with OpenAI Agents SDK
-    // Following OpenAI Agents SDK quickstart: https://openai.github.io/openai-agents-js/guides/quickstart/
-    // SDK automatically reads OPENAI_API_KEY from environment
+  protected async initializeOpenAI() {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.')
     }
     
-    this.aiProvider = new AgentsProvider()
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
   }
 
-  protected async ensureAIProvider(userId?: string) {
-    if (!this.aiProvider) {
-      await this.initializeAIProvider(userId)
+  protected async ensureOpenAI() {
+    if (!this.openai) {
+      await this.initializeOpenAI()
     }
   }
 
@@ -53,16 +51,16 @@ export abstract class BaseAgent {
 
   protected async callModel(prompt: string, context: AgentContext): Promise<string> {
     try {
-      const userId = context.metadata?.userId
-      if (!userId) {
-        throw new Error('User ID is required in context metadata')
-      }
-      await this.ensureAIProvider(userId)
-      if (!this.aiProvider) {
-        throw new Error('AI provider not initialized')
+      await this.ensureOpenAI()
+      if (!this.openai) {
+        throw new Error('OpenAI client not initialized')
       }
       const fullPrompt = this.buildPrompt(prompt, context)
-      return await this.aiProvider.generateText(fullPrompt)
+      const response = await this.openai.chat.completions.create({
+        model: process.env.AI_MODEL || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: fullPrompt }],
+      })
+      return response.choices[0]?.message?.content || ''
     } catch (error) {
       throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
@@ -70,15 +68,20 @@ export abstract class BaseAgent {
 
   protected async callModelForJSON(prompt: string, context: AgentContext): Promise<any> {
     try {
-      const userId = context.metadata?.userId
-      if (!userId) {
-        throw new Error('User ID is required in context metadata')
+      await this.ensureOpenAI()
+      if (!this.openai) {
+        throw new Error('OpenAI client not initialized')
       }
-      await this.ensureAIProvider(userId)
-      if (!this.aiProvider) {
-        throw new Error('AI provider not initialized')
+      const response = await this.openai.chat.completions.create({
+        model: process.env.AI_MODEL || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' },
+      })
+      const content = response.choices[0]?.message?.content
+      if (!content) {
+        throw new Error('No response from OpenAI')
       }
-      return await this.aiProvider.generateJSON(prompt)
+      return JSON.parse(content)
     } catch (error) {
       throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
@@ -87,15 +90,15 @@ export abstract class BaseAgent {
   protected async callModelDirect(prompt: string, context: AgentContext): Promise<string> {
     // Direct call without building full prompt - use when prompt is already complete
     try {
-      const userId = context.metadata?.userId
-      if (!userId) {
-        throw new Error('User ID is required in context metadata')
+      await this.ensureOpenAI()
+      if (!this.openai) {
+        throw new Error('OpenAI client not initialized')
       }
-      await this.ensureAIProvider(userId)
-      if (!this.aiProvider) {
-        throw new Error('AI provider not initialized')
-      }
-      return await this.aiProvider.generateText(prompt)
+      const response = await this.openai.chat.completions.create({
+        model: process.env.AI_MODEL || 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+      })
+      return response.choices[0]?.message?.content || ''
     } catch (error) {
       throw new Error(`Agent ${this.name} error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
