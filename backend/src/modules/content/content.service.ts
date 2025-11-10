@@ -1,15 +1,7 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { AppError } from '../../utils/appError'
-<<<<<<< HEAD
-<<<<<<< HEAD
-import OpenAI from 'openai'
-=======
 import { createAIProvider } from '../../services/ai/ai-provider.factory'
->>>>>>> parent of 9aa1c08 (done)
-=======
-import { createAIProvider } from '../../services/ai/ai-provider.factory'
->>>>>>> parent of 9aa1c08 (done)
 import { appEnv } from '../../config/env'
 
 export interface DocumentationTopic {
@@ -439,17 +431,6 @@ async function organizeLinksIntoTopics(
   links: Array<{ url: string; text: string; title?: string }>
 ): Promise<DocumentationTopic[]> {
   try {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    // Use simple OpenAI API client instead of Agents SDK
-    if (!process.env.OPENAI_API_KEY) {
-      throw new AppError('OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.', 500)
-    }
-
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-=======
     // Get AI config from environment variables
     const config = {
       provider: appEnv.aiProvider,
@@ -463,22 +444,6 @@ async function organizeLinksIntoTopics(
     }
 
     const aiProvider = createAIProvider(config)
->>>>>>> parent of 9aa1c08 (done)
-=======
-    // Get AI config from environment variables
-    const config = {
-      provider: appEnv.aiProvider,
-      model: appEnv.aiModel,
-      apiKey: appEnv.aiApiKey,
-      baseUrl: appEnv.aiBaseUrl,
-    }
-    
-    if (!config.apiKey) {
-      throw new AppError('AI API key not configured. Please set AI_API_KEY in your .env file.', 500)
-    }
-
-    const aiProvider = createAIProvider(config)
->>>>>>> parent of 9aa1c08 (done)
 
     // Limit links to avoid token limits
     const limitedLinks = links.slice(0, 100)
@@ -509,49 +474,7 @@ Return a JSON array with this structure:
 Group related links together under similar topics. If a link doesn't fit well, you can still include it as a standalone topic.
 Return only the JSON array, no other text.`
 
-    const response = await openai.chat.completions.create({
-      model: process.env.AI_MODEL || 'gpt-4o-mini',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      response_format: { type: 'json_object' },
-    })
-
-    const content = response.choices[0]?.message?.content
-    if (!content) {
-      throw new Error('No response from OpenAI')
-    }
-
-    // Parse JSON response
-    let result: any
-    try {
-      result = JSON.parse(content)
-      // If response is wrapped in a property, extract the array
-      if (result.topics && Array.isArray(result.topics)) {
-        result = result.topics
-      } else if (result.items && Array.isArray(result.items)) {
-        result = result.items
-      } else if (!Array.isArray(result)) {
-        // If it's an object but not an array, try to find array values
-        const arrayValues = Object.values(result).find((v) => Array.isArray(v))
-        if (arrayValues) {
-          result = arrayValues
-        } else {
-          throw new Error('Response is not an array')
-        }
-      }
-    } catch (parseError) {
-      // Try to extract JSON from markdown code blocks
-      const jsonMatch = content.match(/```(?:json)?\s*(\[[\s\S]*\])\s*```/)
-      if (jsonMatch) {
-        result = JSON.parse(jsonMatch[1])
-      } else {
-        throw new Error('Failed to parse JSON response')
-      }
-    }
+    const result = await aiProvider.generateJSON(prompt)
 
     if (!Array.isArray(result)) {
       throw new Error('Invalid response format from AI')

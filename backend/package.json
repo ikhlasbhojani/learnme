@@ -8,16 +8,6 @@
     "start": "node dist/server.js"
   },
   "dependencies": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-    "@ai-sdk/anthropic": "^2.0.41",
-    "@ai-sdk/deepseek": "^1.0.27",
-    "@ai-sdk/google": "^2.0.29",
-    "@ai-sdk/mistral": "^2.0.23",
-=======
->>>>>>> parent of 9aa1c08 (done)
-=======
->>>>>>> parent of 9aa1c08 (done)
     "axios": "^1.7.7",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0",
