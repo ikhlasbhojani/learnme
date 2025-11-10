@@ -94,15 +94,14 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
       });
 
       if (!contentInput) {
-        contentInput = new ContentInput({
+        contentInput = await ContentInput.create({
           userId: req.authUser.userId,
           type: 'url',
           source: url,
           content: null
         });
-        await contentInput.save();
       }
-      contentInputId = contentInput._id;
+      contentInputId = contentInput.id;
     }
 
     // Call Python service
@@ -144,7 +143,7 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
       }));
 
       // Create quiz
-      const quiz = new Quiz({
+      const quiz = await Quiz.create({
         userId: req.authUser.userId,
         contentInputId,
         name: quizName || null,
@@ -154,16 +153,14 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
           timeDuration: finalTimeDuration
         },
         questions: mappedQuestions,
-        answers: new Map(),
+        answers: {},
         status: 'pending'
       });
-
-      await quiz.save();
 
       res.status(201).json({
         message: 'Quiz generated successfully',
         data: {
-          quizId: quiz._id,
+          quizId: quiz.id,
           questions: mappedQuestions,
           metadata: metadata || {}
         }
@@ -286,13 +283,12 @@ const generateQuizFromDocumentHandler = async (req, res, next) => {
     }
 
     // Create ContentInput
-    const contentInput = new ContentInput({
+    const contentInput = await ContentInput.create({
       userId: req.authUser.userId,
       type: 'file',
       source: 'uploaded-document',
       content: document
     });
-    await contentInput.save();
 
     // Call Python service
     try {
@@ -332,9 +328,9 @@ const generateQuizFromDocumentHandler = async (req, res, next) => {
       }));
 
       // Create quiz
-      const quiz = new Quiz({
+      const quiz = await Quiz.create({
         userId: req.authUser.userId,
-        contentInputId: contentInput._id,
+        contentInputId: contentInput.id,
         name: quizName || null,
         configuration: {
           difficulty: mapDifficulty(difficulty),
@@ -342,16 +338,14 @@ const generateQuizFromDocumentHandler = async (req, res, next) => {
           timeDuration: finalTimeDuration
         },
         questions: mappedQuestions,
-        answers: new Map(),
+        answers: {},
         status: 'pending'
       });
-
-      await quiz.save();
 
       res.status(201).json({
         message: 'Quiz generated successfully',
         data: {
-          quizId: quiz._id,
+          quizId: quiz.id,
           questions: mappedQuestions,
           metadata: metadata || {}
         }

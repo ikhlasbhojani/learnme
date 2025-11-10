@@ -49,8 +49,7 @@ const listQuizzesHandler = async (req, res, next) => {
       });
     }
 
-    const quizzes = await Quiz.find({ userId: req.authUser.userId })
-      .sort({ createdAt: -1 });
+    const quizzes = await Quiz.find({ userId: req.authUser.userId });
 
     res.status(200).json({
       data: quizzes.map(quiz => quiz.toJSON())
@@ -134,7 +133,7 @@ const createQuizHandler = async (req, res, next) => {
       }
     }
 
-    const quiz = new Quiz({
+    const quiz = await Quiz.create({
       userId: req.authUser.userId,
       contentInputId: contentInputId || null,
       name: null,
@@ -144,11 +143,9 @@ const createQuizHandler = async (req, res, next) => {
         timeDuration
       },
       questions: [],
-      answers: new Map(),
+      answers: {},
       status: 'pending'
     });
-
-    await quiz.save();
 
     res.status(201).json({
       message: 'Quiz created',
@@ -266,7 +263,7 @@ const startQuizHandler = async (req, res, next) => {
 
     res.status(200).json({
       data: {
-        id: quiz._id,
+        id: quiz.id,
         status: quiz.status,
         startTime: quiz.startTime,
         endTime: quiz.endTime,
@@ -353,8 +350,8 @@ const answerQuizHandler = async (req, res, next) => {
 
     res.status(200).json({
       data: {
-        id: quiz._id,
-        answers: Object.fromEntries(quiz.answers),
+        id: quiz.id,
+        answers: quiz.answers instanceof Map ? Object.fromEntries(quiz.answers) : quiz.answers,
         updatedAt: quiz.updatedAt
       }
     });
@@ -421,7 +418,7 @@ const pauseQuizHandler = async (req, res, next) => {
 
     res.status(200).json({
       data: {
-        id: quiz._id,
+        id: quiz.id,
         status: quiz.status,
         pauseReason: quiz.pauseReason,
         pausedAt: quiz.pausedAt,
@@ -482,7 +479,7 @@ const resumeQuizHandler = async (req, res, next) => {
 
     res.status(200).json({
       data: {
-        id: quiz._id,
+        id: quiz.id,
         status: quiz.status,
         pauseReason: quiz.pauseReason,
         pausedAt: quiz.pausedAt,
@@ -564,7 +561,7 @@ const finishQuizHandler = async (req, res, next) => {
         `${PYTHON_SERVICE_URL}/api/ai/quiz/analyze`,
         {
           quiz: {
-            id: quiz._id,
+            id: quiz.id,
             questions: quiz.questions,
             configuration: quiz.configuration
           },
@@ -660,7 +657,7 @@ const expireQuizHandler = async (req, res, next) => {
 
     res.status(200).json({
       data: {
-        id: quiz._id,
+        id: quiz.id,
         status: quiz.status,
         endTime: quiz.endTime,
         updatedAt: quiz.updatedAt

@@ -1,48 +1,118 @@
-const mongoose = require('mongoose');
+const { getDB } = require('../config/db');
 
-const userSchema = new mongoose.Schema({
-  _id: {
-    type: String,
-    default: function() {
-      return `user-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-    }
-  },
-  email: {
-    type: String,
-    required: [true, 'Email is required'],
-    unique: true,
-    lowercase: true,
-    trim: true,
-    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
-  },
-  passwordHash: {
-    type: String,
-    required: [true, 'Password is required']
-  },
-  themePreference: {
-    type: String,
-    enum: ['light', 'dark', 'blue', 'green'],
-    default: null
-  },
-  lastLoginAt: {
-    type: Date,
-    default: null
-  }
-}, {
-  _id: true,
-  timestamps: true,
-  toJSON: {
-    transform: function(doc, ret) {
-      ret.id = ret._id;
-      delete ret._id;
-      delete ret.passwordHash;
-      delete ret.__v;
-      return ret;
-    }
-  }
-});
+/**
+ * Generate custom ID
+ */
+const generateId = (prefix) => {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+};
 
-const User = mongoose.model('User', userSchema);
+/**
+ * User Model
+ */
+class User {
+  /**
+   * Create a new user
+   */
+  static async create(userData) {
+    const db = getDB();
+    const id = generateId('user');
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      INSERT INTO users (id, email, password_hash, theme_preference, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      userData.email.toLowerCase(),
+      userData.passwordHash,
+      userData.themePreference || null,
+      now,
+      now
+    );
+
+    return User.findById(id);
+  }
+
+  /**
+   * Find user by ID
+   */
+  static async findById(id) {
+    const db = getDB();
+    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
+    const row = stmt.get(id);
+    return row ? User._mapRowToUser(row) : null;
+  }
+
+  /**
+   * Find user by email
+   */
+  static async findOne(query) {
+    const db = getDB();
+    if (query.email) {
+      const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
+      const row = stmt.get(query.email.toLowerCase());
+      return row ? User._mapRowToUser(row) : null;
+    }
+    return null;
+  }
+
+  /**
+   * Update user
+   */
+  async save() {
+    const db = getDB();
+    const now = new Date().toISOString();
+
+    const stmt = db.prepare(`
+      UPDATE users 
+      SET email = ?, password_hash = ?, theme_preference = ?, last_login_at = ?, updated_at = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(
+      this.email,
+      this.passwordHash,
+      this.themePreference,
+      this.lastLoginAt,
+      now,
+      this.id
+    );
+
+    return User.findById(this.id);
+  }
+
+  /**
+   * Convert to JSON (exclude passwordHash)
+   */
+  toJSON() {
+    const obj = {
+      id: this.id,
+      email: this.email,
+      themePreference: this.themePreference,
+      lastLoginAt: this.lastLoginAt,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
+    };
+    return obj;
+  }
+
+  /**
+   * Map database row to User object
+   */
+  static _mapRowToUser(row) {
+    const user = new User();
+    user.id = row.id;
+    user.email = row.email;
+    user.passwordHash = row.password_hash;
+    user.themePreference = row.theme_preference;
+    user.lastLoginAt = row.last_login_at;
+    user.createdAt = row.created_at;
+    user.updatedAt = row.updated_at;
+    return user;
+  }
+}
 
 module.exports = User;
-

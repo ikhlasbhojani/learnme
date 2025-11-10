@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
-const connectDB = require('./src/config/db');
+const { connectDB } = require('./src/config/db');
+const { initializeSchema } = require('./src/config/schema');
 
 // Load environment variables
 dotenv.config();
@@ -74,21 +75,30 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation error',
-      error: Object.values(err.errors).map(e => e.message).join(', ')
-    });
-  }
-
-  // Mongoose duplicate key error
-  if (err.code === 11000) {
+  // SQLite constraint error (unique violation)
+  if (err.code === 'SQLITE_CONSTRAINT_UNIQUE' || err.message?.includes('UNIQUE constraint failed')) {
     return res.status(400).json({
       success: false,
       message: 'Duplicate entry',
       error: 'This record already exists'
+    });
+  }
+
+  // SQLite constraint error (foreign key violation)
+  if (err.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || err.message?.includes('FOREIGN KEY constraint failed')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid reference',
+      error: 'Referenced record does not exist'
+    });
+  }
+
+  // SQLite constraint error (check constraint violation)
+  if (err.code === 'SQLITE_CONSTRAINT_CHECK' || err.message?.includes('CHECK constraint failed')) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation error',
+      error: 'Invalid data provided'
     });
   }
 
@@ -124,25 +134,26 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Connect to MongoDB and start server
-connectDB()
-  .then(() => {
-    app.listen(PORT, () => {
-      console.log('=================================');
-      console.log('🚀 LearnMe Node.js Backend');
-      console.log('=================================');
-      console.log(`✅ Server is running on http://localhost:${PORT}`);
-      console.log(`📦 Environment: ${NODE_ENV}`);
-      console.log(`🗄️  Database: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/learnme'}`);
-      console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
-      console.log(`🐍 Python Service: ${process.env.PYTHON_SERVICE_URL || 'http://localhost:8000'}`);
-      console.log('=================================');
-    });
-  })
-  .catch((error) => {
-    console.error('❌ Failed to start server:', error);
-    process.exit(1);
+// Connect to SQLite and start server
+try {
+  connectDB();
+  initializeSchema();
+  
+  app.listen(PORT, () => {
+    console.log('=================================');
+    console.log('🚀 LearnMe Node.js Backend');
+    console.log('=================================');
+    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`📦 Environment: ${NODE_ENV}`);
+    console.log(`🗄️  Database: ${process.env.DATABASE_PATH || './data/learnme.db'}`);
+    console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+    console.log(`🐍 Python Service: ${process.env.PYTHON_SERVICE_URL || 'http://localhost:8000'}`);
+    console.log('=================================');
   });
+} catch (error) {
+  console.error('❌ Failed to start server:', error);
+  process.exit(1);
+}
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

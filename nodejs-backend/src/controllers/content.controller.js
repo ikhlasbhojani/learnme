@@ -221,14 +221,12 @@ const createContentHandler = async (req, res, next) => {
       });
     }
 
-    const contentInput = new ContentInput({
+    const contentInput = await ContentInput.create({
       userId: req.authUser.userId,
       type,
       source,
       content: content || null
     });
-
-    await contentInput.save();
 
     res.status(201).json({
       message: 'Content created',

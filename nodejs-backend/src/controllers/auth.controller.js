@@ -88,16 +88,14 @@ const signupHandler = async (req, res, next) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     // Create user
-    const user = new User({
+    const user = await User.create({
       email: email.toLowerCase(),
       passwordHash,
       themePreference: themePreference || null
     });
 
-    await user.save();
-
     // Generate token
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user.id, user.email);
 
     // Set cookie
     attachAuthCookie(res, token);
@@ -113,19 +111,11 @@ const signupHandler = async (req, res, next) => {
   } catch (error) {
     console.error('Signup error:', error);
     
-    // Handle duplicate email error
-    if (error.code === 11000 || error.message.includes('duplicate')) {
+    // Handle duplicate email error (SQLite)
+    if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.message?.includes('UNIQUE constraint failed')) {
       return res.status(400).json({
         message: 'Email already registered',
         error: 'User with this email already exists'
-      });
-    }
-
-    // Handle validation errors
-    if (error.name === 'ValidationError') {
-      return res.status(400).json({
-        message: 'Invalid input',
-        error: Object.values(error.errors)[0]?.message || 'Validation failed'
       });
     }
 
@@ -175,7 +165,7 @@ const loginHandler = async (req, res, next) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user.id, user.email);
 
     // Set cookie
     attachAuthCookie(res, token);
