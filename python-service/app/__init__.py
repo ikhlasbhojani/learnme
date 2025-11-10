@@ -1,2 +1,0 @@
-# LearnMe Python Service
-

@@ -335,8 +335,18 @@ Generate the detailed analysis now:`
       if (jsonMatch) {
         let jsonStr = jsonMatch[0]
         
-        // Clean JSON string - more comprehensive cleaning
-        jsonStr = this.cleanJsonString(jsonStr)
+        // Clean JSON string
+        jsonStr = jsonStr
+          // Remove trailing commas before closing brackets/braces
+          .replace(/,(\s*[\]}])/g, '$1')
+          // Fix common quote issues
+          .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
+          // Remove any control characters
+          .replace(/[\x00-\x1F\x7F]/g, '')
+          // Fix double commas
+          .replace(/,,+/g, ',')
+          // Remove commas at start of objects/arrays
+          .replace(/(\[|\{)\s*,/g, '$1')
         
         try {
           const parsed = JSON.parse(jsonStr)
@@ -398,186 +408,6 @@ Generate the detailed analysis now:`
     )
   }
 
-  private extractAndFixJsonObject(jsonStr: string): string | null {
-    // Extract the main JSON object and try to fix it
-    let depth = 0
-    let inString = false
-    let escapeNext = false
-    let currentObj = ''
-    let objStart = -1
-    
-    for (let i = 0; i < jsonStr.length; i++) {
-      const char = jsonStr[i]
-      
-      if (escapeNext) {
-        escapeNext = false
-        if (objStart >= 0) currentObj += char
-        continue
-      }
-      
-      if (char === '\\') {
-        escapeNext = true
-        if (objStart >= 0) currentObj += char
-        continue
-      }
-      
-      if (char === '"' && !escapeNext) {
-        inString = !inString
-        if (objStart >= 0) currentObj += char
-        continue
-      }
-      
-      if (!inString) {
-        if (char === '{') {
-          if (depth === 0) {
-            objStart = i
-            currentObj = char
-          } else if (objStart >= 0) {
-            currentObj += char
-          }
-          depth++
-        } else if (char === '}') {
-          depth--
-          if (objStart >= 0) currentObj += char
-          if (depth === 0 && objStart >= 0) {
-            // Try to fix and parse this object
-            try {
-              let cleaned = this.cleanJsonString(currentObj)
-              const test = JSON.parse(cleaned)
-              if (test && typeof test === 'object') {
-                return cleaned
-              }
-            } catch {
-              // Invalid object, continue searching
-            }
-            objStart = -1
-            currentObj = ''
-          }
-        } else if (objStart >= 0) {
-          currentObj += char
-        }
-      } else if (objStart >= 0) {
-        currentObj += char
-      }
-    }
-    
-    return null
-  }
-
-  private cleanJsonString(jsonStr: string): string {
-    // Comprehensive JSON cleaning with multiple passes
-    let cleaned = jsonStr
-      // Remove trailing commas before closing brackets/braces (multiple passes)
-      .replace(/,(\s*[\]}])/g, '$1')
-      .replace(/,(\s*[\]}])/g, '$1') // Second pass for nested structures
-      // Fix common quote issues
-      .replace(/(['"])?([a-zA-Z0-9_]+)(['"])?\s*:/g, '"$2":')
-      // Fix double commas
-      .replace(/,,+/g, ',')
-      // Remove commas at start of objects/arrays
-      .replace(/(\[|\{)\s*,/g, '$1')
-      // Fix missing commas between array elements (but be careful with strings)
-      .replace(/\]\s*\[/g, '],[')
-    
-    // Fix arrays specifically
-    cleaned = this.fixJsonArrays(cleaned)
-    
-    // Remove control characters (but preserve escaped ones)
-    cleaned = cleaned.replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
-    
-    return cleaned
-  }
-
-  private fixJsonArrays(jsonStr: string): string {
-    // Fix malformed arrays by processing them carefully
-    // This handles cases where array elements are missing commas or have other issues
-    let result = ''
-    let inString = false
-    let escapeNext = false
-    let arrayDepth = 0
-    let lastChar = ''
-    let lastNonWhitespace = ''
-    
-    for (let i = 0; i < jsonStr.length; i++) {
-      const char = jsonStr[i]
-      
-      if (escapeNext) {
-        escapeNext = false
-        result += char
-        lastChar = char
-        if (!/\s/.test(char)) lastNonWhitespace = char
-        continue
-      }
-      
-      if (char === '\\') {
-        escapeNext = true
-        result += char
-        lastChar = char
-        lastNonWhitespace = char
-        continue
-      }
-      
-      if (char === '"' && !escapeNext) {
-        inString = !inString
-        result += char
-        lastChar = char
-        lastNonWhitespace = char
-        continue
-      }
-      
-      if (!inString) {
-        if (char === '[') {
-          arrayDepth++
-          result += char
-          lastChar = char
-          lastNonWhitespace = char
-        } else if (char === ']') {
-          arrayDepth--
-          // Remove trailing comma before closing bracket
-          if (lastNonWhitespace === ',') {
-            // Find and remove the last comma
-            let commaPos = result.lastIndexOf(',')
-            if (commaPos > 0) {
-              // Check if it's actually a trailing comma (not inside a string)
-              let beforeComma = result.substring(Math.max(0, commaPos - 10), commaPos)
-              if (!beforeComma.includes('"') || beforeComma.split('"').length % 2 === 0) {
-                result = result.substring(0, commaPos) + result.substring(commaPos + 1)
-              }
-            }
-          }
-          result += char
-          lastChar = char
-          lastNonWhitespace = char
-        } else if (char === ',' && arrayDepth > 0) {
-          // Ensure we don't have double commas or comma after opening bracket
-          if (lastNonWhitespace !== ',' && lastNonWhitespace !== '[' && lastNonWhitespace !== '{') {
-            result += char
-            lastChar = char
-            lastNonWhitespace = char
-          }
-        } else if (/\s/.test(char)) {
-          // Whitespace - preserve it
-          result += char
-          lastChar = char
-        } else {
-          // Regular character - just add it
-          result += char
-          lastChar = char
-          lastNonWhitespace = char
-        }
-      } else {
-        result += char
-        lastChar = char
-        lastNonWhitespace = char
-      }
-    }
-    
-    // Final pass: remove any remaining trailing commas before ]
-    result = result.replace(/,(\s*\])/g, '$1')
-    
-    return result
-  }
-
   private aggressiveJsonClean(jsonStr: string): string {
     try {
       // Remove any text before first { and after last }
@@ -590,17 +420,24 @@ Generate the detailed analysis now:`
       
       let cleaned = jsonStr.substring(firstBrace, lastBrace + 1)
       
-      // Use the comprehensive cleaning method
-      cleaned = this.cleanJsonString(cleaned)
-      
-      // Additional aggressive fixes
+      // More aggressive cleaning
       cleaned = cleaned
+        // Remove trailing commas
+        .replace(/,(\s*[}\]])/g, '$1')
         // Fix unquoted keys
         .replace(/(\{|,)\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
         // Remove duplicate commas
         .replace(/,+/g, ',')
+        // Remove commas at start of objects/arrays
+        .replace(/(\[|\{)\s*,/g, '$1')
+        // Fix newlines in strings (replace with space)
+        .replace(/"\s*\n\s*"/g, '" "')
+        // Remove any standalone commas
+        .replace(/,\s*,/g, ',')
         // Fix missing commas between objects
         .replace(/\}\s*\{/g, '},{')
+        // Remove any control characters except newlines in strings
+        .replace(/[\x00-\x09\x0B-\x1F\x7F]/g, '')
       
       return cleaned
     } catch (error) {
