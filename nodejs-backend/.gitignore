@@ -29,3 +29,9 @@ Thumbs.db
 dist/
 build/
 
+# Database
+data/
+*.db
+*.db-shm
+*.db-wal
+

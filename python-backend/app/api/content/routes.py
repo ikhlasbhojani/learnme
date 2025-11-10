@@ -46,13 +46,33 @@ async def extract_topics(
         # Use X-User-Id from header or request body
         user_id = x_user_id or request.userId
         
-        # Extract topics
-        result = await content_service.extract_topics(
-            url=str(request.url),
-            user_id=user_id
-        )
+        logger.info(f"Starting topic extraction for URL: {request.url}")
         
-        return {"success": True, "data": result.model_dump()}
+        # Extract topics with timeout handling
+        import asyncio
+        try:
+            result = await asyncio.wait_for(
+                content_service.extract_topics(
+                    url=str(request.url),
+                    user_id=user_id
+                ),
+                timeout=90.0  # 90 second timeout for the entire operation
+            )
+            
+            logger.info(f"Topic extraction completed successfully. Found {result.totalPages} topics.")
+            return {"success": True, "data": result.model_dump()}
+            
+        except asyncio.TimeoutError:
+            logger.error(f"Topic extraction timed out for URL: {request.url}")
+            error_response = get_error_response(
+                Exception("Request timed out. The documentation page may be too large or slow to process."),
+                "Topic extraction timed out",
+                settings.DEBUG
+            )
+            raise HTTPException(
+                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
+                detail=error_response
+            )
         
     except ValueError as e:
         error_response = get_error_response(e, "Invalid URL format", settings.DEBUG)
@@ -69,6 +89,9 @@ async def extract_topics(
             status_code=http_status,
             detail=error_response
         )
+    except HTTPException:
+        # Re-raise HTTP exceptions (like timeout)
+        raise
     except Exception as e:
         error_trace = traceback.format_exc()
         logger.error(f"Topic extraction failed: {str(e)}\n{error_trace}")

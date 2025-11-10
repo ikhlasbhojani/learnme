@@ -117,6 +117,7 @@ async def _extract_urls_from_html(
 ) -> List[tuple[str, str]]:
     """
     Extract URLs from HTML content along with their page titles.
+    Optimized to avoid timeouts by using anchor text first.
     
     Args:
         url: URL to fetch HTML from
@@ -125,13 +126,15 @@ async def _extract_urls_from_html(
     Returns:
         List of tuples (url, title) where title is extracted from page heading
     """
-    timeout = context.timeout if context else 30
+    timeout = min(context.timeout if context else 30, 20)  # Max 20 seconds for main page fetch
     
     async with httpx.AsyncClient(timeout=timeout) as client:
         try:
-            response = await client.get(url)
+            response = await client.get(url, follow_redirects=True)
             response.raise_for_status()
             html = response.text
+        except httpx.TimeoutException:
+            raise Exception(f"Timeout while fetching URL: {url}")
         except Exception as e:
             raise Exception(f"Failed to fetch URL: {str(e)}")
     
@@ -142,7 +145,10 @@ async def _extract_urls_from_html(
     links_with_titles = []
     seen_urls = set()
     
-    for anchor in soup.find_all('a', href=True):
+    # Limit number of links to process to avoid timeout (max 200 links)
+    anchors = soup.find_all('a', href=True)[:200]
+    
+    for anchor in anchors:
         href = anchor.get('href')
         if not href:
             continue
@@ -160,9 +166,24 @@ async def _extract_urls_from_html(
         seen_urls.add(absolute_url)
         
         # Extract title from anchor text or page heading (async)
-        title = await _extract_title_from_url(absolute_url, anchor, soup, url)
-        
-        links_with_titles.append((absolute_url, title))
+        # This is now optimized to use anchor text first
+        try:
+            title = await _extract_title_from_url(absolute_url, anchor, soup, url)
+            links_with_titles.append((absolute_url, title))
+        except Exception:
+            # If title extraction fails, use anchor text or URL-based title
+            anchor_text = anchor.get_text(strip=True)
+            if anchor_text:
+                links_with_titles.append((absolute_url, anchor_text))
+            else:
+                # Generate from URL
+                parsed = urlparse(absolute_url)
+                path_parts = [p for p in parsed.path.split('/') if p]
+                if path_parts:
+                    title = path_parts[-1].replace('-', ' ').replace('_', ' ').title()
+                else:
+                    title = "Home"
+                links_with_titles.append((absolute_url, title))
     
     # Sort by URL
     links_with_titles.sort(key=lambda x: x[0])
@@ -178,7 +199,7 @@ async def _extract_title_from_url(
 ) -> str:
     """
     Extract title from URL's page heading or anchor text.
-    Fetches the actual page to get its heading (h1, h2, etc.).
+    Optimized to avoid slow HTTP requests - uses anchor text first.
     
     Args:
         url: The URL to extract title for
@@ -192,13 +213,10 @@ async def _extract_title_from_url(
     # First, try to get title from anchor text (fast, no network call)
     anchor_text = anchor.get_text(strip=True)
     if anchor_text and len(anchor_text) > 0 and len(anchor_text) < 100:
-        # Clean anchor text
-        title = anchor_text.strip()
-        if title:
-            # Use anchor text as initial title, but try to fetch page heading too
-            pass
+        # Use anchor text as title (most reliable and fastest)
+        return anchor_text.strip()
     
-    # Try to fetch the page and get its actual heading
+    # Try to fetch the page and get its actual heading (with short timeout)
     try:
         parsed_url = urlparse(url)
         parsed_main = urlparse(main_url)
@@ -216,10 +234,11 @@ async def _extract_title_from_url(
                 if parsed_url.fragment.lower() in h.get('id', '').lower():
                     return h.get_text(strip=True)
         
-        # For different pages, fetch the page to get its heading
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        # For different pages, ONLY fetch if anchor text is not available
+        # Use very short timeout to avoid hanging (3 seconds max)
+        async with httpx.AsyncClient(timeout=3.0) as client:
             try:
-                response = await client.get(url)
+                response = await client.get(url, follow_redirects=True)
                 response.raise_for_status()
                 page_html = response.text
                 page_soup = BeautifulSoup(page_html, 'html.parser')
@@ -247,8 +266,8 @@ async def _extract_title_from_url(
                         title = title.split(' - ')[0].split(' | ')[0].strip()
                         return title
                         
-            except Exception:
-                # If fetch fails, fall back to anchor text or URL
+            except (httpx.TimeoutException, httpx.RequestError, Exception):
+                # If fetch fails or times out, fall back to anchor text or URL
                 pass
         
         # Fallback: use anchor text if available
