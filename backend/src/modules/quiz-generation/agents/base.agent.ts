@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 import OpenAI from 'openai'
+=======
+import { AIProvider } from '../../../services/ai/ai-provider.interface'
+import { createAIProvider } from '../../../services/ai/ai-provider.factory'
+import { appEnv } from '../../../config/env'
+>>>>>>> parent of 9aa1c08 (done)
 
 export interface AgentContext {
   input: any
@@ -29,6 +35,7 @@ export abstract class BaseAgent {
     // OpenAI client will be initialized when needed
   }
 
+<<<<<<< HEAD
   protected async initializeOpenAI() {
     if (!process.env.OPENAI_API_KEY) {
       throw new Error('OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.')
@@ -37,6 +44,22 @@ export abstract class BaseAgent {
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
+=======
+  protected async initializeAIProvider(userId?: string) {
+    // Get AI config from environment variables
+    const config = {
+      provider: appEnv.aiProvider,
+      model: appEnv.aiModel,
+      apiKey: appEnv.aiApiKey,
+      baseUrl: appEnv.aiBaseUrl,
+    }
+    
+    if (!config.apiKey) {
+      throw new Error('AI API key not configured. Please set AI_API_KEY in your .env file.')
+    }
+    
+    this.aiProvider = createAIProvider(config)
+>>>>>>> parent of 9aa1c08 (done)
   }
 
   protected async ensureOpenAI() {

@@ -1,7 +1,11 @@
 import axios from 'axios'
 import * as cheerio from 'cheerio'
 import { AppError } from '../../utils/appError'
+<<<<<<< HEAD
 import OpenAI from 'openai'
+=======
+import { createAIProvider } from '../../services/ai/ai-provider.factory'
+>>>>>>> parent of 9aa1c08 (done)
 import { appEnv } from '../../config/env'
 
 export interface DocumentationTopic {
@@ -431,6 +435,7 @@ async function organizeLinksIntoTopics(
   links: Array<{ url: string; text: string; title?: string }>
 ): Promise<DocumentationTopic[]> {
   try {
+<<<<<<< HEAD
     // Use simple OpenAI API client instead of Agents SDK
     if (!process.env.OPENAI_API_KEY) {
       throw new AppError('OpenAI API key not configured. Please set OPENAI_API_KEY in your .env file.', 500)
@@ -439,6 +444,21 @@ async function organizeLinksIntoTopics(
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
     })
+=======
+    // Get AI config from environment variables
+    const config = {
+      provider: appEnv.aiProvider,
+      model: appEnv.aiModel,
+      apiKey: appEnv.aiApiKey,
+      baseUrl: appEnv.aiBaseUrl,
+    }
+    
+    if (!config.apiKey) {
+      throw new AppError('AI API key not configured. Please set AI_API_KEY in your .env file.', 500)
+    }
+
+    const aiProvider = createAIProvider(config)
+>>>>>>> parent of 9aa1c08 (done)
 
     // Limit links to avoid token limits
     const limitedLinks = links.slice(0, 100)
