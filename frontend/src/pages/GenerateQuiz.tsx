@@ -348,7 +348,7 @@ export default function GenerateQuiz() {
                             fontSize: theme.typography.fontSize.sm,
                             fontWeight: theme.typography.fontWeight.medium,
                             color: colors.text,
-                            marginBottom: theme.spacing.xs / 2,
+                            marginBottom: '0.125rem', // xs / 2 = 0.25rem / 2 = 0.125rem
                           }}
                         >
                           {topic.title}
@@ -358,7 +358,7 @@ export default function GenerateQuiz() {
                             style={{
                               fontSize: theme.typography.fontSize.xs,
                               color: colors.gray[600],
-                              marginBottom: theme.spacing.xs / 2,
+                              marginBottom: '0.125rem', // xs / 2 = 0.25rem / 2 = 0.125rem
                             }}
                           >
                             {topic.section}

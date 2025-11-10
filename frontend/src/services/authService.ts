@@ -36,18 +36,22 @@ function mapUser(response: UserResponse): User {
 }
 
 export async function signup(payload: SignupPayload): Promise<User> {
+  // Node.js backend returns: { message: "...", data: { user: {...}, token: "..." } }
+  // apiClient automatically extracts 'data' field, so response is { user, token }
   const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/signup', payload)
   // Store token in localStorage for Authorization header
-  if (response.token) {
+  if (response?.token) {
     localStorage.setItem('auth_token', response.token)
   }
   return mapUser(response.user)
 }
 
 export async function login(payload: AuthPayload): Promise<User> {
+  // Node.js backend returns: { message: "...", data: { user: {...}, token: "..." } }
+  // apiClient automatically extracts 'data' field, so response is { user, token }
   const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/login', payload)
   // Store token in localStorage for Authorization header
-  if (response.token) {
+  if (response?.token) {
     localStorage.setItem('auth_token', response.token)
   }
   return mapUser(response.user)
@@ -61,6 +65,8 @@ export async function logout(): Promise<void> {
 
 export async function fetchCurrentUser(): Promise<User | null> {
   try {
+    // Node.js backend returns: { data: user.toJSON() }
+    // apiClient automatically extracts 'data' field, so response is UserResponse directly
     const response = await apiClient.get<UserResponse>('/auth/me')
     return mapUser(response)
   } catch (error) {
@@ -72,6 +78,8 @@ export async function fetchCurrentUser(): Promise<User | null> {
 }
 
 export async function updateProfile(payload: UpdateProfilePayload): Promise<User> {
+  // Node.js backend returns: { message: "...", data: user.toJSON() }
+  // apiClient automatically extracts 'data' field, so response is UserResponse directly
   const response = await apiClient.patch<UserResponse>('/auth/me', payload)
   return mapUser(response)
 }

@@ -54,14 +54,35 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   if (!response.ok) {
     // Try to extract user-friendly error message from response
     let message = response.statusText || 'Request failed'
+    let errorCode: string | undefined
+    let retryAfter: number | undefined
 
     if (isJson && payload) {
       // Check for common error message fields
       if (typeof payload === 'object') {
         if ('message' in payload && typeof payload.message === 'string') {
           message = payload.message
-        } else if ('error' in payload && typeof payload.error === 'string') {
-          message = payload.error
+        }
+        if ('error' in payload) {
+          if (typeof payload.error === 'string') {
+            message = payload.error
+          } else if (typeof payload.error === 'object' && payload.error !== null) {
+            // Handle structured error object
+            const errorObj = payload.error as any
+            if (errorObj.message && typeof errorObj.message === 'string') {
+              message = errorObj.message
+            }
+            if (errorObj.details && typeof errorObj.details === 'string') {
+              // Prefer details over message if available
+              message = errorObj.details
+            }
+            if (errorObj.code && typeof errorObj.code === 'string') {
+              errorCode = errorObj.code
+            }
+            if (typeof errorObj.retryAfter === 'number') {
+              retryAfter = errorObj.retryAfter
+            }
+          }
         } else if ('errors' in payload && Array.isArray(payload.errors) && payload.errors.length > 0) {
           // Handle validation errors array
           message = payload.errors[0]?.message || payload.errors[0] || message
@@ -80,8 +101,16 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       }
     }
 
-    const error = new Error(message) as Error & { status?: number }
+    const error = new Error(message) as Error & { 
+      status?: number
+      code?: string
+      retryAfter?: number
+      response?: any
+    }
     error.status = response.status
+    error.code = errorCode
+    error.retryAfter = retryAfter
+    error.response = payload
     throw error
   }
 

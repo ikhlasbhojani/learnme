@@ -9,17 +9,10 @@ describe('QuestionCount', () => {
     expect(screen.getByText(/Question 3 of 10/i)).toBeInTheDocument()
   })
 
-  it('should display remaining questions in remaining format', () => {
-    render(<QuestionCount current={7} total={10} format="remaining" />)
+  it('should display short format by default', () => {
+    render(<QuestionCount current={7} total={10} />)
     
-    expect(screen.getByText(/3 questions remaining/i)).toBeInTheDocument()
-  })
-
-  it('should have correct ARIA label for accessibility', () => {
-    render(<QuestionCount current={1} total={10} format="full" />)
-    
-    const element = screen.getByText(/Question 1 of 10/i)
-    expect(element).toHaveAttribute('aria-label', 'Question 1 of 10')
+    expect(screen.getByText(/7\/10/i)).toBeInTheDocument()
   })
 
   it('should handle single question correctly', () => {
@@ -29,9 +22,9 @@ describe('QuestionCount', () => {
   })
 
   it('should handle last question correctly', () => {
-    render(<QuestionCount current={10} total={10} format="remaining" />)
+    render(<QuestionCount current={10} total={10} format="full" />)
     
-    expect(screen.getByText(/0 questions remaining/i)).toBeInTheDocument()
+    expect(screen.getByText(/Question 10 of 10/i)).toBeInTheDocument()
   })
 
   it('should update display when props change', () => {

@@ -1,50 +1,35 @@
 import React from 'react'
-import { theme, getThemeColors } from '../../styles/theme'
-import { useTheme } from '../../contexts/ThemeContext'
 
 interface TimerProps {
-  timeRemaining: number // in seconds
-  totalTime: number // in seconds
+  timeRemaining: number
+  totalTime: number
 }
 
 export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
-  const { isDark } = useTheme()
-  const colors = getThemeColors(isDark)
   const minutes = Math.floor(timeRemaining / 60)
   const seconds = timeRemaining % 60
+  const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
   const percentage = totalTime > 0 ? (timeRemaining / totalTime) * 100 : 0
-
-  const getColor = () => {
-    if (percentage > 50) return colors.success
-    if (percentage > 25) return colors.warning
-    return colors.error
-  }
+  const isLowTime = timeRemaining < 60 // Less than 1 minute
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-      }}
-    >
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
       <div
         style={{
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: getColor(),
-          fontFamily: theme.typography.fontFamily.mono.join(', '),
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: isLowTime ? '#f85149' : 'inherit',
+          fontFamily: 'monospace',
         }}
       >
-        {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+        {formattedTime}
       </div>
       <div
         style={{
-          width: '200px',
-          height: '8px',
-          backgroundColor: colors.gray[200],
-          borderRadius: theme.borderRadius.full,
+          width: '100px',
+          height: '4px',
+          backgroundColor: '#e5e7eb',
+          borderRadius: '2px',
           overflow: 'hidden',
         }}
       >
@@ -52,7 +37,7 @@ export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
           style={{
             width: `${percentage}%`,
             height: '100%',
-            backgroundColor: getColor(),
+            backgroundColor: isLowTime ? '#f85149' : '#0969da',
             transition: 'width 1s linear, background-color 0.3s',
           }}
         />
@@ -60,3 +45,4 @@ export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
     </div>
   )
 }
+

@@ -15,6 +15,8 @@ export interface ExtractTopicsResult {
 }
 
 export async function extractTopicsFromUrl(url: string): Promise<ExtractTopicsResult> {
+  // Node.js backend returns: { message: "...", data: { topics, mainUrl, totalPages } }
+  // apiClient automatically extracts 'data' field, so response is ExtractTopicsResult directly
   const response = await apiClient.post<ExtractTopicsResult>('/content/extract-topics', { url })
   return response
 }

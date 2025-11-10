@@ -1,60 +1,84 @@
 import { apiClient } from './apiClient'
-import { Question } from '../types'
+import { QuizConfiguration } from '../types'
 
-import { DocumentationTopic } from './contentService'
-
-export interface GenerateQuizFromUrlRequest {
+interface GenerateQuizFromUrlRequest {
   url?: string
-  selectedTopics?: DocumentationTopic[]
-  difficulty: 'easy' | 'medium' | 'hard'
+  selectedTopics?: Array<{ id: string; title: string; url: string }>
+  difficulty: 'Easy' | 'Normal' | 'Hard' | 'Master'
   numberOfQuestions: number
-  timeDuration?: number
+  timeDuration: number
 }
 
-export interface GenerateQuizFromDocumentRequest {
+interface GenerateQuizFromDocumentRequest {
   document: string
-  difficulty: 'easy' | 'medium' | 'hard'
+  difficulty: 'Easy' | 'Normal' | 'Hard' | 'Master'
   numberOfQuestions: number
-  timeDuration?: number
+  timeDuration: number
 }
 
-export interface GeneratedQuizResponse {
+interface GenerateQuizResponse {
   quizId: string
-  questions: Question[]
-  metadata: {
-    source: string
-    difficulty: string
-    requestedQuestions: number
-    generatedQuestions: number
-    extractedAt: string
-    generatedAt: string
-  }
-}
-
-export async function generateQuizFromUrl(
-  request: GenerateQuizFromUrlRequest
-): Promise<GeneratedQuizResponse> {
-  // apiClient automatically extracts 'data' from backend response { message, data }
-  const response = await apiClient.post<GeneratedQuizResponse>(
-    '/quiz-generation/generate-from-url',
-    request
-  )
-  return response
-}
-
-export async function generateQuizFromDocument(
-  request: GenerateQuizFromDocumentRequest
-): Promise<GeneratedQuizResponse> {
-  // apiClient automatically extracts 'data' from backend response { message, data }
-  const response = await apiClient.post<GeneratedQuizResponse>(
-    '/quiz-generation/generate-from-document',
-    request
-  )
-  return response
+  message?: string
 }
 
 export const quizGenerationService = {
-  generateQuizFromUrl,
-  generateQuizFromDocument,
+  /**
+   * Generate quiz from URL (with optional topic selection)
+   */
+  async generateQuizFromUrl(request: GenerateQuizFromUrlRequest): Promise<GenerateQuizResponse> {
+    try {
+      const response = await apiClient.post<{ quizId: string; questions?: any[]; metadata?: any }>('/quiz-generation/generate-from-url', {
+        url: request.url,
+        selectedTopics: request.selectedTopics,
+        difficulty: request.difficulty,
+        numberOfQuestions: request.numberOfQuestions,
+        timeDuration: request.timeDuration,
+      })
+
+      // Backend returns: { data: { quizId: string, questions: [], metadata: {} } }
+      // apiClient automatically extracts 'data' field, so response is { quizId, questions, metadata }
+      if (!response.quizId) {
+        console.error('Quiz generation response:', response)
+        throw new Error('Quiz ID missing in response')
+      }
+
+      return {
+        quizId: response.quizId,
+        message: 'Quiz generated successfully',
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate quiz'
+      throw new Error(errorMessage)
+    }
+  },
+
+  /**
+   * Generate quiz from document text
+   */
+  async generateQuizFromDocument(request: GenerateQuizFromDocumentRequest): Promise<GenerateQuizResponse> {
+    try {
+      const response = await apiClient.post<{ quizId: string; questions?: any[]; metadata?: any }>('/quiz-generation/generate-from-document', {
+        document: request.document,
+        difficulty: request.difficulty,
+        numberOfQuestions: request.numberOfQuestions,
+        timeDuration: request.timeDuration,
+      })
+
+      // Backend returns: { data: { quizId: string, questions: [], metadata: {} } }
+      // apiClient automatically extracts 'data' field, so response is { quizId, questions, metadata }
+      if (!response.quizId) {
+        console.error('Quiz generation response:', response)
+        throw new Error('Quiz ID missing in response')
+      }
+
+      return {
+        quizId: response.quizId,
+        message: 'Quiz generated successfully',
+      }
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to generate quiz'
+      throw new Error(errorMessage)
+    }
+  },
 }
 
