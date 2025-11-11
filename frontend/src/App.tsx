@@ -4,9 +4,6 @@ import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/common/ProtectedRoute'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { useAuth } from './hooks/useAuth'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
 import Home from './pages/Home'
 import LearningModes from './pages/LearningModes'
 import QuizConfigPage from './pages/QuizConfig'
@@ -20,18 +17,14 @@ import BookMindMap from './pages/BookMindMap'
 import BookReader from './pages/BookReader'
 
 function App() {
-  const { user, logout } = useAuth()
-
   return (
     <ErrorBoundary>
       <ThemeProvider>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
         <Route
           path="/*"
           element={
-            <Layout user={user} onLogout={logout}>
+            <Layout>
               <Routes>
                 <Route
                   path="/home"

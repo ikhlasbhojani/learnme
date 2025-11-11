@@ -19,19 +19,18 @@ class ContentInput {
     const id = generateId('content');
     const now = new Date().toISOString();
 
-    const stmt = db.prepare(`
-      INSERT INTO content_inputs (id, user_id, type, source, content, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      contentData.userId,
-      contentData.type,
-      contentData.source,
-      contentData.content || null,
-      now,
-      now
+    await db.run(
+      `INSERT INTO content_inputs (id, user_id, type, source, content, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        contentData.userId,
+        contentData.type,
+        contentData.source,
+        contentData.content || null,
+        now,
+        now
+      ]
     );
 
     return ContentInput.findById(id);
@@ -42,8 +41,7 @@ class ContentInput {
    */
   static async findById(id) {
     const db = getDB();
-    const stmt = db.prepare('SELECT * FROM content_inputs WHERE id = ?');
-    const row = stmt.get(id);
+    const row = await db.get('SELECT * FROM content_inputs WHERE id = ?', [id]);
     return row ? ContentInput._mapRowToContentInput(row) : null;
   }
 
@@ -53,13 +51,14 @@ class ContentInput {
   static async findOne(query) {
     const db = getDB();
     if (query.userId && query.type && query.source) {
-      const stmt = db.prepare('SELECT * FROM content_inputs WHERE user_id = ? AND type = ? AND source = ? LIMIT 1');
-      const row = stmt.get(query.userId, query.type, query.source);
+      const row = await db.get(
+        'SELECT * FROM content_inputs WHERE user_id = ? AND type = ? AND source = ? LIMIT 1',
+        [query.userId, query.type, query.source]
+      );
       return row ? ContentInput._mapRowToContentInput(row) : null;
     }
     if (query.userId) {
-      const stmt = db.prepare('SELECT * FROM content_inputs WHERE user_id = ? LIMIT 1');
-      const row = stmt.get(query.userId);
+      const row = await db.get('SELECT * FROM content_inputs WHERE user_id = ? LIMIT 1', [query.userId]);
       return row ? ContentInput._mapRowToContentInput(row) : null;
     }
     return null;
@@ -71,8 +70,7 @@ class ContentInput {
   static async find(query) {
     const db = getDB();
     if (query.userId) {
-      const stmt = db.prepare('SELECT * FROM content_inputs WHERE user_id = ? ORDER BY created_at DESC');
-      const rows = stmt.all(query.userId);
+      const rows = await db.all('SELECT * FROM content_inputs WHERE user_id = ? ORDER BY created_at DESC', [query.userId]);
       return rows.map(row => ContentInput._mapRowToContentInput(row));
     }
     return [];
@@ -85,18 +83,17 @@ class ContentInput {
     const db = getDB();
     const now = new Date().toISOString();
 
-    const stmt = db.prepare(`
-      UPDATE content_inputs 
-      SET type = ?, source = ?, content = ?, updated_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      this.type,
-      this.source,
-      this.content,
-      now,
-      this.id
+    await db.run(
+      `UPDATE content_inputs 
+       SET type = ?, source = ?, content = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        this.type,
+        this.source,
+        this.content,
+        now,
+        this.id
+      ]
     );
 
     return ContentInput.findById(this.id);
@@ -107,8 +104,7 @@ class ContentInput {
    */
   async delete() {
     const db = getDB();
-    const stmt = db.prepare('DELETE FROM content_inputs WHERE id = ?');
-    stmt.run(this.id);
+    await db.run('DELETE FROM content_inputs WHERE id = ?', [this.id]);
     return true;
   }
 

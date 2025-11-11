@@ -23,10 +23,7 @@ const mapDifficulty = (difficulty) => {
 const generateQuizFromUrlHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { url, selectedTopics, difficulty, numberOfQuestions, timeDuration } = req.body;
@@ -233,10 +230,7 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
 const generateQuizFromDocumentHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { document, difficulty, numberOfQuestions, timeDuration } = req.body;

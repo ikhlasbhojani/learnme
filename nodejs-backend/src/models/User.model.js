@@ -19,18 +19,17 @@ class User {
     const id = generateId('user');
     const now = new Date().toISOString();
 
-    const stmt = db.prepare(`
-      INSERT INTO users (id, email, password_hash, theme_preference, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `);
-
-    stmt.run(
-      id,
-      userData.email.toLowerCase(),
-      userData.passwordHash,
-      userData.themePreference || null,
-      now,
-      now
+    await db.run(
+      `INSERT INTO users (id, email, password_hash, theme_preference, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userData.email.toLowerCase(),
+        userData.passwordHash,
+        userData.themePreference || null,
+        now,
+        now
+      ]
     );
 
     return User.findById(id);
@@ -41,8 +40,7 @@ class User {
    */
   static async findById(id) {
     const db = getDB();
-    const stmt = db.prepare('SELECT * FROM users WHERE id = ?');
-    const row = stmt.get(id);
+    const row = await db.get('SELECT * FROM users WHERE id = ?', [id]);
     return row ? User._mapRowToUser(row) : null;
   }
 
@@ -52,8 +50,7 @@ class User {
   static async findOne(query) {
     const db = getDB();
     if (query.email) {
-      const stmt = db.prepare('SELECT * FROM users WHERE email = ?');
-      const row = stmt.get(query.email.toLowerCase());
+      const row = await db.get('SELECT * FROM users WHERE email = ?', [query.email.toLowerCase()]);
       return row ? User._mapRowToUser(row) : null;
     }
     return null;
@@ -66,19 +63,18 @@ class User {
     const db = getDB();
     const now = new Date().toISOString();
 
-    const stmt = db.prepare(`
-      UPDATE users 
-      SET email = ?, password_hash = ?, theme_preference = ?, last_login_at = ?, updated_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      this.email,
-      this.passwordHash,
-      this.themePreference,
-      this.lastLoginAt,
-      now,
-      this.id
+    await db.run(
+      `UPDATE users 
+       SET email = ?, password_hash = ?, theme_preference = ?, last_login_at = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        this.email,
+        this.passwordHash,
+        this.themePreference,
+        this.lastLoginAt,
+        now,
+        this.id
+      ]
     );
 
     return User.findById(this.id);

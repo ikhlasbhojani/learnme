@@ -90,16 +90,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
       }
     }
 
-    // Handle 401 errors - clear stale auth and force re-login
-    if (response.status === 401) {
-      localStorage.removeItem('auth_token')
-      localStorage.removeItem('user')
-      
-      // Only redirect to login if not already on auth pages
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
-        window.location.href = '/login'
-      }
-    }
+    // Open-source/local mode: do not force redirect on 401
 
     const error = new Error(message) as Error & { 
       status?: number

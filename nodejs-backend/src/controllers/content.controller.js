@@ -2,6 +2,7 @@ const ContentInput = require('../models/ContentInput.model');
 const axios = require('axios');
 
 const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8000';
+const LOCAL_USER_ID = 'local-user';
 
 /**
  * Validate URL format
@@ -21,6 +22,8 @@ const isValidUrl = (url) => {
  */
 const extractTopicsHandler = async (req, res, next) => {
   try {
+    const userId = LOCAL_USER_ID;
+    
     // Log incoming request
     console.log('\n========================================');
     console.log('📥 [EXTRACT TOPICS REQUEST]');
@@ -28,17 +31,9 @@ const extractTopicsHandler = async (req, res, next) => {
     console.log('Time:', new Date().toISOString());
     console.log('Method:', req.method);
     console.log('Path:', req.path);
-    console.log('User ID:', req.authUser?.userId || 'Not authenticated');
+    console.log('User ID:', userId);
     console.log('Request Body:', JSON.stringify(req.body, null, 2));
     console.log('========================================\n');
-
-    if (!req.authUser || !req.authUser.userId) {
-      console.log('❌ Authentication failed - No user ID');
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
 
     const { url } = req.body;
 
@@ -70,12 +65,12 @@ const extractTopicsHandler = async (req, res, next) => {
         `${PYTHON_SERVICE_URL}/api/ai/content/extract-topics`,
         {
           url,
-          userId: req.authUser.userId
+          userId
         },
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': req.authUser.userId
+            'X-User-Id': userId
           },
           timeout: 120000 // 120 seconds timeout (Python service can take time for topic extraction)
         }
@@ -167,14 +162,8 @@ const extractTopicsHandler = async (req, res, next) => {
  */
 const listContentHandler = async (req, res, next) => {
   try {
-    if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
-    const contentInputs = await ContentInput.find({ userId: req.authUser.userId })
+    const userId = LOCAL_USER_ID;
+    const contentInputs = await ContentInput.find({ userId })
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -196,13 +185,7 @@ const listContentHandler = async (req, res, next) => {
  */
 const createContentHandler = async (req, res, next) => {
   try {
-    if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
+    const userId = LOCAL_USER_ID;
     const { type, source, content } = req.body;
 
     // Validate required fields
@@ -222,7 +205,7 @@ const createContentHandler = async (req, res, next) => {
     }
 
     const contentInput = await ContentInput.create({
-      userId: req.authUser.userId,
+      userId,
       type,
       source,
       content: content || null
@@ -255,29 +238,13 @@ const createContentHandler = async (req, res, next) => {
  */
 const getContentHandler = async (req, res, next) => {
   try {
-    if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
     const { id } = req.params;
-
     const contentInput = await ContentInput.findById(id);
 
     if (!contentInput) {
       return res.status(404).json({
         message: 'Content not found',
         error: 'Content input with this ID does not exist'
-      });
-    }
-
-    // Check ownership
-    if (contentInput.userId !== req.authUser.userId) {
-      return res.status(403).json({
-        message: 'Access denied',
-        error: 'You are not allowed to access this content'
       });
     }
 
@@ -300,13 +267,6 @@ const getContentHandler = async (req, res, next) => {
  */
 const updateContentHandler = async (req, res, next) => {
   try {
-    if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
     const { id } = req.params;
     const { source, content } = req.body;
 
@@ -316,14 +276,6 @@ const updateContentHandler = async (req, res, next) => {
       return res.status(404).json({
         message: 'Content not found',
         error: 'Content input with this ID does not exist'
-      });
-    }
-
-    // Check ownership
-    if (contentInput.userId !== req.authUser.userId) {
-      return res.status(403).json({
-        message: 'Access denied',
-        error: 'You are not allowed to update this content'
       });
     }
 
@@ -364,29 +316,13 @@ const updateContentHandler = async (req, res, next) => {
  */
 const deleteContentHandler = async (req, res, next) => {
   try {
-    if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
     const { id } = req.params;
-
     const contentInput = await ContentInput.findById(id);
 
     if (!contentInput) {
       return res.status(404).json({
         message: 'Content not found',
         error: 'Content input with this ID does not exist'
-      });
-    }
-
-    // Check ownership
-    if (contentInput.userId !== req.authUser.userId) {
-      return res.status(403).json({
-        message: 'Access denied',
-        error: 'You are not allowed to delete this content'
       });
     }
 
@@ -413,4 +349,3 @@ module.exports = {
   updateContentHandler,
   deleteContentHandler
 };
-

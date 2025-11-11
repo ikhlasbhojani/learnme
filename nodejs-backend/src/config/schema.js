@@ -1,16 +1,16 @@
 const { getDB } = require('./db');
 
 /**
- * Initialize database schema
- */
-const initializeSchema = () => {
+* Initialize database schema
+*/
+const initializeSchema = async () => {
   const db = getDB();
 
   // Enable foreign keys
-  db.pragma('foreign_keys = ON');
+  await db.pragma('foreign_keys = ON');
 
   // Create Users table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
       email TEXT UNIQUE NOT NULL,
@@ -26,7 +26,7 @@ const initializeSchema = () => {
   `);
 
   // Create Content Inputs table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS content_inputs (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -44,7 +44,7 @@ const initializeSchema = () => {
   `);
 
   // Create Quizzes table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS quizzes (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -83,7 +83,7 @@ const initializeSchema = () => {
   `);
 
   // Create Quiz Questions table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS quiz_questions (
       id TEXT PRIMARY KEY,
       quiz_id TEXT NOT NULL,

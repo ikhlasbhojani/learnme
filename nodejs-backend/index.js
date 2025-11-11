@@ -135,25 +135,27 @@ const PORT = process.env.PORT || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
 // Connect to SQLite and start server
-try {
-  connectDB();
-  initializeSchema();
-  
-  app.listen(PORT, () => {
-    console.log('=================================');
-    console.log('🚀 LearnMe Node.js Backend');
-    console.log('=================================');
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
-    console.log(`📦 Environment: ${NODE_ENV}`);
-    console.log(`🗄️  Database: ${process.env.DATABASE_PATH || './data/learnme.db'}`);
-    console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
-    console.log(`🐍 Python Service: ${process.env.PYTHON_SERVICE_URL || 'http://localhost:8000'}`);
-    console.log('=================================');
-  });
-} catch (error) {
-  console.error('❌ Failed to start server:', error);
-  process.exit(1);
-}
+(async () => {
+  try {
+    connectDB();
+    await initializeSchema();
+
+    app.listen(PORT, () => {
+      console.log('=================================');
+      console.log('🚀 LearnMe Node.js Backend');
+      console.log('=================================');
+      console.log(`✅ Server is running on http://localhost:${PORT}`);
+      console.log(`📦 Environment: ${NODE_ENV}`);
+      console.log(`🗄️  Database: ${process.env.DATABASE_PATH || './data/learnme.db'}`);
+      console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
+      console.log(`🐍 Python Service: ${process.env.PYTHON_SERVICE_URL || 'http://localhost:8000'}`);
+      console.log('=================================');
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+})();
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {

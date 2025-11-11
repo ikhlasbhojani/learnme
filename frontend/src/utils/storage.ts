@@ -95,4 +95,5 @@ export const STORAGE_KEYS = {
   USER: 'user',
   QUIZ: (quizId: string) => `quiz_${quizId}`,
   SESSION: 'session',
+  DISPLAY_NAME: 'display_name',
 } as const

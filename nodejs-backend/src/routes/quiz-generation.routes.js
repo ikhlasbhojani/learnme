@@ -4,12 +4,8 @@ const {
   generateQuizFromUrlHandler,
   generateQuizFromDocumentHandler
 } = require('../controllers/quiz-generation.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
 
-// All quiz generation routes require authentication
-router.use(authenticate);
-
-// Quiz generation routes
+// Quiz generation routes (no authentication required for open-source mode)
 router.post('/generate-from-url', generateQuizFromUrlHandler);
 router.post('/generate-from-document', generateQuizFromDocumentHandler);
 

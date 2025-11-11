@@ -1,14 +1,10 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BookOpen, Plus, FileText, Moon, Sun, LogOut, Key, Sparkles, X, Menu, ChevronDown } from 'lucide-react'
+import { BookOpen, Plus, FileText, Moon, Sun, X, Menu, ChevronDown } from 'lucide-react'
 import { theme, getThemeColors } from '../../styles/theme'
 import { useTheme } from '../../contexts/ThemeContext'
-
-interface NavbarProps {
-  user?: { email: string } | null
-  onLogout?: () => void
-}
+import { getStorageItem, STORAGE_KEYS } from '../../utils/storage'
 
 const getNavItems = (colors: ReturnType<typeof getThemeColors>) => [
   { path: '/home', label: 'Home', icon: <BookOpen size={16} color={colors.text} /> },
@@ -16,13 +12,14 @@ const getNavItems = (colors: ReturnType<typeof getThemeColors>) => [
   { path: '/quiz-history', label: 'Assessment History', icon: <FileText size={16} color={colors.text} /> },
 ]
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
+export const Navbar: React.FC = () => {
   const location = useLocation()
   const { isDark, toggleTheme } = useTheme()
   const colors = getThemeColors(isDark)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
   const [isUserDropdownOpen, setIsUserDropdownOpen] = React.useState(false)
   const [isMobile, setIsMobile] = React.useState(false)
+  const displayName = getStorageItem<string>(STORAGE_KEYS.DISPLAY_NAME) || 'Guest'
 
   const isActive = (path: string) => {
     return location.pathname === path
@@ -152,8 +149,6 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               gap: theme.spacing.md,
             }}
           >
-          {user ? (
-            <>
               {getNavItems(colors).map((item) => {
                 const active = isActive(item.path)
                 return (
@@ -208,13 +203,11 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   </Link>
                 )
               })}
-            </>
-          ) : null}
           </div>
         )}
 
-        {/* Right Side: User Dropdown */}
-        {user && (
+        {/* Right Side: Display name + Theme toggle */}
+        {
           <div
             data-user-dropdown
             style={{
@@ -245,7 +238,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   color: colors.secondary,
                 }}
               >
-                {user.email[0]?.toUpperCase()}
+                {displayName[0]?.toUpperCase()}
               </div>
               <span
                 style={{
@@ -258,7 +251,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {user.email}
+                {displayName}
               </span>
               <ChevronDown size={12} color={colors.gray[500]} />
             </button>
@@ -314,7 +307,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                         color: colors.secondary,
                       }}
                     >
-                      {user.email[0]?.toUpperCase()}
+                      {displayName[0]?.toUpperCase()}
                     </div>
                     <div
                       style={{
@@ -332,7 +325,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {user.email}
+                        {displayName}
                       </div>
                     </div>
                   </div>
@@ -357,103 +350,12 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   {isDark ? <Sun size={18} /> : <Moon size={18} />}
                   <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
                 </button>
-
-                {/* Divider */}
-                <div
-                  style={{
-                    height: '1px',
-                    background: colors.border,
-                    margin: `${theme.spacing.xs} 0`,
-                  }}
-                />
-
-                {/* Logout */}
-                <button
-                  onClick={() => {
-                    onLogout?.()
-                    setIsUserDropdownOpen(false)
-                  }}
-                  className={`
-                    flex items-center gap-2 p-4 rounded-md w-full text-left text-sm font-medium cursor-pointer transition-all duration-300
-                    bg-transparent border-none
-                    ${isDark ? 'text-[#f85149] hover:bg-[rgba(248,81,73,0.1)]' : 'text-[#cf222e] hover:bg-[rgba(207,34,46,0.1)]'}
-                  `}
-                >
-                  <LogOut size={18} className={isDark ? 'text-[#f85149]' : 'text-[#cf222e]'} />
-                  <span>Logout</span>
-                </button>
               </motion.div>
             )}
           </div>
-        )}
+        }
 
-        {/* Non-authenticated users - Login/Signup */}
-        {!user && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-            }}
-          >
-            <Link
-              to="/login"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                borderRadius: theme.borderRadius.md,
-                textDecoration: 'none',
-                background: isActive('/login')
-                  ? colors.gray[100]
-                  : 'transparent',
-                color: colors.text,
-                fontWeight: theme.typography.fontWeight.medium,
-                transition: `all ${theme.transitions.normal}`,
-                fontSize: theme.typography.fontSize.sm,
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive('/login')) {
-                  e.currentTarget.style.background = colors.gray[50]
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive('/login')) {
-                  e.currentTarget.style.background = 'transparent'
-                }
-              }}
-            >
-              <Key size={16} color={colors.text} />
-              <span>Login</span>
-            </Link>
-            <Link
-              to="/signup"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                borderRadius: theme.borderRadius.md,
-                textDecoration: 'none',
-                background: colors.primary,
-                color: colors.secondary,
-                fontWeight: theme.typography.fontWeight.semibold,
-                transition: `all ${theme.transitions.normal}`,
-                fontSize: theme.typography.fontSize.sm,
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.filter = 'brightness(1.1)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.filter = 'brightness(1)'
-              }}
-            >
-              <Sparkles size={16} color={colors.secondary} />
-              <span>Sign Up</span>
-            </Link>
-          </div>
-        )}
+        {/* Removed Login/Signup buttons for open-source local mode */}
       </div>
 
       {/* Mobile Menu */}
@@ -470,8 +372,6 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             borderTop: `1px solid ${colors.border}`,
           }}
         >
-          {user ? (
-            <>
               {getNavItems(colors).map((item) => {
                 const active = isActive(item.path)
                 return (
@@ -497,44 +397,6 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
                   </Link>
                 )
               })}
-            </>
-          ) : (
-            <>
-              <Link
-                to="/login"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing.sm,
-                  padding: theme.spacing.md,
-                  borderRadius: theme.borderRadius.lg,
-                  textDecoration: 'none',
-                  color: colors.text,
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                <Key size={18} color={colors.text} />
-                <span>Login</span>
-              </Link>
-              <Link
-                to="/signup"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing.sm,
-                  padding: theme.spacing.md,
-                  borderRadius: theme.borderRadius.lg,
-                  textDecoration: 'none',
-                  background: colors.primary,
-                  color: colors.secondary,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                }}
-              >
-                <Sparkles size={18} color={colors.secondary} />
-                <span>Sign Up</span>
-              </Link>
-            </>
-          )}
         </motion.div>
       )}
     </motion.nav>

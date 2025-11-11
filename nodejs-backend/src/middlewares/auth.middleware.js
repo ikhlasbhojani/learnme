@@ -19,14 +19,16 @@ const authenticate = async (req, res, next) => {
       token = req.headers.authorization.substring(7);
     }
 
+    // If token is not provided, allow anonymous local usage
     if (!token) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = {
+        userId: 'local-user',
+        email: 'local@localhost'
+      };
+      return next();
     }
 
-    // Verify token
+    // Verify token if provided
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || 'default-secret-change-in-production'
@@ -35,10 +37,12 @@ const authenticate = async (req, res, next) => {
     // Find user
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      // Fall back to local user if token references missing user
+      req.authUser = {
+        userId: 'local-user',
+        email: 'local@localhost'
+      };
+      return next();
     }
 
     // Attach user to request
@@ -50,18 +54,12 @@ const authenticate = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Authentication error:', error);
-    
-    if (error.name === 'JsonWebTokenError' || error.name === 'TokenExpiredError') {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
-    }
-
-    res.status(500).json({
-      message: 'Authentication failed',
-      error: 'Internal server error'
-    });
+    // On any token error, fall back to local user (no hard 401)
+    req.authUser = {
+      userId: 'local-user',
+      email: 'local@localhost'
+    };
+    next();
   }
 };
 

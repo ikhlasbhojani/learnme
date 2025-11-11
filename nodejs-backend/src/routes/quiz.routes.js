@@ -12,12 +12,8 @@ const {
   expireQuizHandler,
   getQuizAssessmentHandler
 } = require('../controllers/quiz.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
 
-// All quiz routes require authentication
-router.use(authenticate);
-
-// Quiz routes
+// Quiz routes (no authentication required for open-source mode)
 router.get('/', listQuizzesHandler);
 router.post('/', createQuizHandler);
 router.get('/:id', getQuizHandler);

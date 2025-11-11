@@ -8,12 +8,8 @@ const {
   updateContentHandler,
   deleteContentHandler
 } = require('../controllers/content.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
 
-// All content routes require authentication
-router.use(authenticate);
-
-// Content routes
+// Content routes (no authentication required for open-source mode)
 router.get('/', listContentHandler);
 router.post('/', createContentHandler);
 router.post('/extract-topics', extractTopicsHandler);

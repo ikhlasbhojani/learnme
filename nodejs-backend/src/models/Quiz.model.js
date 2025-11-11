@@ -19,60 +19,62 @@ class Quiz {
     const id = generateId('quiz');
     const now = new Date().toISOString();
 
-    // Start transaction
-    const transaction = db.transaction(() => {
+    // Transaction
+    await db.exec('BEGIN');
+    try {
       // Insert quiz
-      const quizStmt = db.prepare(`
-        INSERT INTO quizzes (
-          id, user_id, content_input_id, name,
-          configuration_difficulty, configuration_number_of_questions, configuration_time_duration,
-          status, created_at, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      quizStmt.run(
-        id,
-        quizData.userId,
-        quizData.contentInputId || null,
-        quizData.name || null,
-        quizData.configuration.difficulty,
-        quizData.configuration.numberOfQuestions,
-        quizData.configuration.timeDuration,
-        quizData.status || 'pending',
-        now,
-        now
+      await db.run(
+        `INSERT INTO quizzes (
+           id, user_id, content_input_id, name,
+           configuration_difficulty, configuration_number_of_questions, configuration_time_duration,
+           status, created_at, updated_at
+         )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          quizData.userId,
+          quizData.contentInputId || null,
+          quizData.name || null,
+          quizData.configuration.difficulty,
+          quizData.configuration.numberOfQuestions,
+          quizData.configuration.timeDuration,
+          quizData.status || 'pending',
+          now,
+          now
+        ]
       );
 
       // Insert questions
       if (quizData.questions && quizData.questions.length > 0) {
-        const questionStmt = db.prepare(`
-          INSERT INTO quiz_questions (
-            id, quiz_id, question_id, text, options, correct_answer, difficulty,
-            explanation, code_snippet, image_reference, created_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `);
-
         for (const question of quizData.questions) {
-          questionStmt.run(
-            `${id}-q-${question.id}`,
-            id,
-            question.id,
-            question.text,
-            JSON.stringify(question.options),
-            question.correctAnswer,
-            question.difficulty,
-            question.explanation || null,
-            question.codeSnippet || null,
-            question.imageReference || null,
-            now
+          await db.run(
+            `INSERT INTO quiz_questions (
+               id, quiz_id, question_id, text, options, correct_answer, difficulty,
+               explanation, code_snippet, image_reference, created_at
+             )
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              `${id}-q-${question.id}`,
+              id,
+              question.id,
+              question.text,
+              JSON.stringify(question.options),
+              question.correctAnswer,
+              question.difficulty,
+              question.explanation || null,
+              question.codeSnippet || null,
+              question.imageReference || null,
+              now
+            ]
           );
         }
       }
-    });
 
-    transaction();
+      await db.exec('COMMIT');
+    } catch (e) {
+      await db.exec('ROLLBACK');
+      throw e;
+    }
 
     return Quiz.findById(id);
   }
@@ -84,20 +86,17 @@ class Quiz {
     const db = getDB();
     
     // Get quiz
-    const quizStmt = db.prepare('SELECT * FROM quizzes WHERE id = ?');
-    const quizRow = quizStmt.get(id);
+    const quizRow = await db.get('SELECT * FROM quizzes WHERE id = ?', [id]);
     
     if (!quizRow) {
       return null;
     }
 
     // Get questions
-    const questionsStmt = db.prepare('SELECT * FROM quiz_questions WHERE quiz_id = ?');
-    const questionRows = questionsStmt.all(id);
+    const questionRows = await db.all('SELECT * FROM quiz_questions WHERE quiz_id = ?', [id]);
 
     // Get answers
-    const answersStmt = db.prepare('SELECT question_id, answer FROM quiz_answers WHERE quiz_id = ?');
-    const answerRows = answersStmt.all(id);
+    const answerRows = await db.all('SELECT question_id, answer FROM quiz_answers WHERE quiz_id = ?', [id]);
 
     return Quiz._mapRowToQuiz(quizRow, questionRows, answerRows);
   }
@@ -109,16 +108,13 @@ class Quiz {
     const db = getDB();
     
     if (query.userId) {
-      const stmt = db.prepare('SELECT * FROM quizzes WHERE user_id = ? ORDER BY created_at DESC');
-      const quizRows = stmt.all(query.userId);
+      const quizRows = await db.all('SELECT * FROM quizzes WHERE user_id = ? ORDER BY created_at DESC', [query.userId]);
       
       const quizzes = [];
       for (const quizRow of quizRows) {
-        const questionsStmt = db.prepare('SELECT * FROM quiz_questions WHERE quiz_id = ?');
-        const questionRows = questionsStmt.all(quizRow.id);
+        const questionRows = await db.all('SELECT * FROM quiz_questions WHERE quiz_id = ?', [quizRow.id]);
         
-        const answersStmt = db.prepare('SELECT question_id, answer FROM quiz_answers WHERE quiz_id = ?');
-        const answerRows = answersStmt.all(quizRow.id);
+        const answerRows = await db.all('SELECT question_id, answer FROM quiz_answers WHERE quiz_id = ?', [quizRow.id]);
         
         quizzes.push(Quiz._mapRowToQuiz(quizRow, questionRows, answerRows));
       }
@@ -136,63 +132,61 @@ class Quiz {
     const db = getDB();
     const now = new Date().toISOString();
 
-    const stmt = db.prepare(`
-      UPDATE quizzes 
-      SET 
-        name = ?, 
-        status = ?, 
-        score = ?, 
-        correct_count = ?, 
-        incorrect_count = ?,
-        start_time = ?, 
-        end_time = ?,
-        pause_reason = ?,
-        paused_at = ?,
-        pause_count = ?,
-        analysis_performance_review = ?,
-        analysis_weak_areas = ?,
-        analysis_suggestions = ?,
-        analysis_strengths = ?,
-        analysis_improvement_areas = ?,
-        analysis_detailed_analysis = ?,
-        analysis_topics_to_review = ?,
-        analysis_analyzed_at = ?,
-        updated_at = ?
-      WHERE id = ?
-    `);
-
-    stmt.run(
-      this.name,
-      this.status,
-      this.score,
-      this.correctCount,
-      this.incorrectCount,
-      this.startTime,
-      this.endTime,
-      this.pauseReason,
-      this.pausedAt,
-      this.pauseCount,
-      this.analysis?.performanceReview || null,
-      this.analysis?.weakAreas ? JSON.stringify(this.analysis.weakAreas) : null,
-      this.analysis?.suggestions ? JSON.stringify(this.analysis.suggestions) : null,
-      this.analysis?.strengths ? JSON.stringify(this.analysis.strengths) : null,
-      this.analysis?.improvementAreas ? JSON.stringify(this.analysis.improvementAreas) : null,
-      this.analysis?.detailedAnalysis || null,
-      this.analysis?.topicsToReview ? JSON.stringify(this.analysis.topicsToReview) : null,
-      this.analysis?.analyzedAt || null,
-      now,
-      this.id
+    await db.run(
+      `UPDATE quizzes 
+       SET 
+         name = ?, 
+         status = ?, 
+         score = ?, 
+         correct_count = ?, 
+         incorrect_count = ?,
+         start_time = ?, 
+         end_time = ?,
+         pause_reason = ?,
+         paused_at = ?,
+         pause_count = ?,
+         analysis_performance_review = ?,
+         analysis_weak_areas = ?,
+         analysis_suggestions = ?,
+         analysis_strengths = ?,
+         analysis_improvement_areas = ?,
+         analysis_detailed_analysis = ?,
+         analysis_topics_to_review = ?,
+         analysis_analyzed_at = ?,
+         updated_at = ?
+       WHERE id = ?`,
+      [
+        this.name,
+        this.status,
+        this.score,
+        this.correctCount,
+        this.incorrectCount,
+        this.startTime,
+        this.endTime,
+        this.pauseReason,
+        this.pausedAt,
+        this.pauseCount,
+        this.analysis?.performanceReview || null,
+        this.analysis?.weakAreas ? JSON.stringify(this.analysis.weakAreas) : null,
+        this.analysis?.suggestions ? JSON.stringify(this.analysis.suggestions) : null,
+        this.analysis?.strengths ? JSON.stringify(this.analysis.strengths) : null,
+        this.analysis?.improvementAreas ? JSON.stringify(this.analysis.improvementAreas) : null,
+        this.analysis?.detailedAnalysis || null,
+        this.analysis?.topicsToReview ? JSON.stringify(this.analysis.topicsToReview) : null,
+        this.analysis?.analyzedAt || null,
+        now,
+        this.id
+      ]
     );
 
     // Update answers if provided
     if (this.answers && Object.keys(this.answers).length > 0) {
-      const answerStmt = db.prepare(`
-        INSERT OR REPLACE INTO quiz_answers (quiz_id, question_id, answer, updated_at)
-        VALUES (?, ?, ?, ?)
-      `);
-
       for (const [questionId, answer] of Object.entries(this.answers)) {
-        answerStmt.run(this.id, questionId, answer, now);
+        await db.run(
+          `INSERT OR REPLACE INTO quiz_answers (quiz_id, question_id, answer, updated_at)
+           VALUES (?, ?, ?, ?)`,
+          [this.id, questionId, answer, now]
+        );
       }
     }
 

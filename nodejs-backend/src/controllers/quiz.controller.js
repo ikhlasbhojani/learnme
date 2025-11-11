@@ -43,10 +43,7 @@ const calculateScore = (quiz) => {
 const listQuizzesHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const quizzes = await Quiz.find({ userId: req.authUser.userId });
@@ -70,10 +67,7 @@ const listQuizzesHandler = async (req, res, next) => {
 const createQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { configuration, contentInputId } = req.body;
@@ -175,10 +169,7 @@ const createQuizHandler = async (req, res, next) => {
 const getQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { id } = req.params;
@@ -218,10 +209,7 @@ const getQuizHandler = async (req, res, next) => {
 const startQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { id } = req.params;
@@ -286,10 +274,7 @@ const startQuizHandler = async (req, res, next) => {
 const answerQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { id } = req.params;
@@ -371,10 +356,7 @@ const answerQuizHandler = async (req, res, next) => {
 const pauseQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { id } = req.params;
@@ -442,10 +424,7 @@ const pauseQuizHandler = async (req, res, next) => {
 const resumeQuizHandler = async (req, res, next) => {
   try {
     if (!req.authUser || !req.authUser.userId) {
-      return res.status(401).json({
-        message: 'Authentication required',
-        error: 'Invalid or expired token'
-      });
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
     }
 
     const { id } = req.params;
