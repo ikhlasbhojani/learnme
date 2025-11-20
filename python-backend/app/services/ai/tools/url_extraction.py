@@ -167,7 +167,7 @@ async def extract_urls_from_documentation(
         elif requested_mode == "auto":
             if browser_available:
                 # Auto-detect SPA
-                    print("Auto-detecting site architecture...")
+                print("Auto-detecting site architecture...")
                 try:
                     from app.services.browser import get_browser_service
                     browser_service = await get_browser_service()
