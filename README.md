@@ -79,8 +79,11 @@ Before you begin, ensure you have:
 Run these commands in PowerShell:
 
 ```powershell
-# Download the installation script
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'
+# Download the installation script with proper encoding
+$uri = 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1'
+$file = 'install-learnme.ps1'
+$content = (Invoke-WebRequest -Uri $uri -UseBasicParsing).Content
+[System.IO.File]::WriteAllText($file, $content, [System.Text.UTF8Encoding]::new($false))
 
 # Run the installation script
 powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1
@@ -89,7 +92,7 @@ powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1
 Or as a one-liner:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'; powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1"
+powershell -ExecutionPolicy Bypass -Command "$uri = 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1'; $file = 'install-learnme.ps1'; $content = (Invoke-WebRequest -Uri $uri -UseBasicParsing).Content; [System.IO.File]::WriteAllText($file, $content, [System.Text.UTF8Encoding]::new($false)); powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1"
 ```
 
 This will:
