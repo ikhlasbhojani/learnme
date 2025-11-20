@@ -77,7 +77,7 @@ Before you begin, ensure you have:
 **One-command setup** - Clone, install everything, and you're ready to go:
 
 ```bash
-git clone https://github.com/yourusername/LearnMe.git && cd LearnMe && npm run setup
+git clone https://github.com/ikhlasbhojani/LearnMe.git && cd LearnMe && npm run setup
 ```
 
 This single command will:
