@@ -115,4 +115,3 @@ Write-Host "      - Node.js API: http://localhost:5000" -ForegroundColor Gray
 Write-Host "      - Python API:  http://localhost:8000" -ForegroundColor Gray
 Write-Host "      - API Docs:    http://localhost:8000/docs" -ForegroundColor Gray
 Write-Host "`n   Important: Configure your AI API keys in the frontend on first launch!`n" -ForegroundColor Yellow
-

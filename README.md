@@ -76,10 +76,20 @@ Before you begin, ensure you have:
 
 **Option 1: PowerShell Installation (Windows)**
 
-Run this single command in PowerShell (downloads and runs the installation script):
+Run these commands in PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'; .\install-learnme.ps1"
+# Download the installation script
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'
+
+# Run the installation script
+powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1
+```
+
+Or as a one-liner:
+
+```powershell
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'; powershell -ExecutionPolicy Bypass -File .\install-learnme.ps1"
 ```
 
 This will:
