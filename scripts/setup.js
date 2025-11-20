@@ -1,7 +1,23 @@
 #!/usr/bin/env node
 
 const { execSync } = require('child_process');
-const chalk = require('chalk');
+const fs = require('fs');
+const path = require('path');
+let chalk;
+try {
+  chalk = require('chalk');
+} catch (e) {
+  // Fallback if chalk is not installed yet
+  chalk = {
+    cyan: { bold: (s) => s },
+    white: (s) => s,
+    gray: (s) => s,
+    green: (s) => s,
+    yellow: (s) => s,
+    red: (s) => s,
+    magenta: { bold: (s) => s }
+  };
+}
 const { isUvInstalled, installUv } = require('./install-uv');
 
 /**
@@ -18,12 +34,13 @@ function displayBanner() {
   
   console.log(chalk.white('This wizard will:\n'));
   console.log(chalk.gray('  1. ✅ Check prerequisites'));
-  console.log(chalk.gray('  2. 📦 Install uv (Python package manager)'));
-  console.log(chalk.gray('  3. 📥 Install frontend dependencies'));
-  console.log(chalk.gray('  4. 📥 Install Node.js backend dependencies'));
-  console.log(chalk.gray('  5. 🐍 Install Python dependencies'));
-  console.log(chalk.gray('  6. 🎭 Install Playwright browsers'));
-  console.log(chalk.gray('  7. 🚀 You\'ll be ready to start!\n'));
+  console.log(chalk.gray('  2. 📦 Install root dependencies'));
+  console.log(chalk.gray('  3. 📦 Install uv (Python package manager)'));
+  console.log(chalk.gray('  4. 📥 Install frontend dependencies'));
+  console.log(chalk.gray('  5. 📥 Install Node.js backend dependencies'));
+  console.log(chalk.gray('  6. 🐍 Install Python dependencies'));
+  console.log(chalk.gray('  7. 🎭 Install Playwright browsers'));
+  console.log(chalk.gray('  8. 🚀 You\'ll be ready to start!\n'));
 }
 
 /**
@@ -62,6 +79,67 @@ function checkNpm() {
     return true;
   } catch (error) {
     console.error(chalk.red('❌ npm is not installed\n'));
+    return false;
+  }
+}
+
+/**
+ * Check if root dependencies are installed
+ */
+function areRootDependenciesInstalled() {
+  const nodeModulesPath = path.join(process.cwd(), 'node_modules');
+  const packageJsonPath = path.join(process.cwd(), 'package.json');
+  
+  if (!fs.existsSync(packageJsonPath)) {
+    return false;
+  }
+  
+  // Check if node_modules exists and has required packages
+  if (!fs.existsSync(nodeModulesPath)) {
+    return false;
+  }
+  
+  // Check for key dependencies
+  const requiredPackages = ['chalk', 'concurrently', 'cross-env'];
+  for (const pkg of requiredPackages) {
+    const pkgPath = path.join(nodeModulesPath, pkg);
+    if (!fs.existsSync(pkgPath)) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+/**
+ * Install root dependencies
+ */
+function installRootDependencies() {
+  // Use plain console.log since chalk might not be installed yet
+  console.log('\n📦 Installing root dependencies...\n');
+  console.log('This is required for setup and start scripts...\n');
+  
+  try {
+    execSync('npm install', {
+      cwd: process.cwd(),
+      stdio: 'inherit'
+    });
+    
+    console.log('\n✅ Root dependencies installed successfully!\n');
+    
+    // Now require chalk properly after installation
+    try {
+      delete require.cache[require.resolve('chalk')];
+      chalk = require('chalk');
+    } catch (e) {
+      // If still fails, use fallback
+      console.warn('Warning: Could not load chalk module');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('\n❌ Failed to install root dependencies\n');
+    console.error(`Error: ${error.message}\n`);
     return false;
   }
 }
@@ -162,7 +240,7 @@ async function main() {
     displayBanner();
     
     // Step 1: Check prerequisites
-    console.log(chalk.magenta.bold(`\n[${++step}/7] 🔍 Checking Prerequisites...\n`));
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 🔍 Checking Prerequisites...\n`));
     
     if (!checkNodeVersion() || !checkNpm()) {
       console.error(chalk.red('❌ Prerequisites not met. Please install required software and try again.\n'));
@@ -171,8 +249,40 @@ async function main() {
     
     checkGit(); // Optional
     
-    // Step 2: Install uv
-    console.log(chalk.magenta.bold(`\n[${++step}/7] 📦 Setting up uv (Python Package Manager)...\n`));
+    // Step 2: Install root dependencies (if needed)
+    console.log(`\n[${++step}/8] 📦 Installing Root Dependencies...\n`);
+    
+    if (!areRootDependenciesInstalled()) {
+      const installed = installRootDependencies();
+      if (!installed) {
+        console.error('❌ Failed to install root dependencies. Please run "npm install" manually and try again.\n');
+        process.exit(1);
+      }
+      // Reload chalk after installation
+      try {
+        delete require.cache[require.resolve('chalk')];
+        chalk = require('chalk');
+      } catch (e) {
+        console.warn('Warning: Could not reload chalk module');
+      }
+    } else {
+      console.log('✅ Root dependencies already installed\n');
+      // Ensure chalk is loaded
+      try {
+        chalk = require('chalk');
+      } catch (e) {
+        // If still can't load, try installing
+        installRootDependencies();
+        try {
+          chalk = require('chalk');
+        } catch (e2) {
+          console.warn('Warning: Could not load chalk module');
+        }
+      }
+    }
+    
+    // Step 3: Install uv
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 📦 Setting up uv (Python Package Manager)...\n`));
     
     if (!isUvInstalled()) {
       const uvInstalled = await installUv();
@@ -184,30 +294,30 @@ async function main() {
       console.log(chalk.green('✅ uv is already installed\n'));
     }
     
-    // Step 3: Install frontend dependencies
-    console.log(chalk.magenta.bold(`\n[${++step}/6] 📥 Installing Frontend Dependencies...\n`));
+    // Step 4: Install frontend dependencies
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 📥 Installing Frontend Dependencies...\n`));
     const frontendSuccess = installDependencies('Frontend', 'frontend', 'npm install');
     if (!frontendSuccess) {
       console.error(chalk.red('⚠️  Frontend installation failed, but continuing...\n'));
     }
     
-    // Step 4: Install Node.js backend dependencies
-    console.log(chalk.magenta.bold(`\n[${++step}/6] 📥 Installing Node.js Backend Dependencies...\n`));
+    // Step 5: Install Node.js backend dependencies
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 📥 Installing Node.js Backend Dependencies...\n`));
     const nodejsSuccess = installDependencies('Node.js Backend', 'nodejs-backend', 'npm install');
     if (!nodejsSuccess) {
       console.error(chalk.red('⚠️  Node.js backend installation failed, but continuing...\n'));
     }
     
-    // Step 5: Install Python dependencies
-    console.log(chalk.magenta.bold(`\n[${++step}/6] 🐍 Installing Python Dependencies...\n`));
+    // Step 6: Install Python dependencies
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 🐍 Installing Python Dependencies...\n`));
     console.log(chalk.gray('Note: uv will automatically install Python 3.13 if not present...\n'));
     const pythonSuccess = installDependencies('Python Backend', 'python-backend', 'uv sync');
     if (!pythonSuccess) {
       console.error(chalk.red('⚠️  Python backend installation failed, but continuing...\n'));
     }
     
-    // Step 6: Install Playwright browsers
-    console.log(chalk.magenta.bold(`\n[${++step}/6] 🎭 Installing Playwright Browsers...\n`));
+    // Step 7: Install Playwright browsers
+    console.log(chalk.magenta.bold(`\n[${++step}/8] 🎭 Installing Playwright Browsers...\n`));
     installPlaywright(); // Non-critical, continue even if fails
     
     // Display success message
