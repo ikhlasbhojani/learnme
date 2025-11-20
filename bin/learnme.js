@@ -3,6 +3,7 @@
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const chalk = require('chalk');
 
 // Get the project root directory (where package.json is)
 const projectRoot = path.resolve(__dirname, '..');
@@ -15,43 +16,54 @@ const args = process.argv.slice(2);
 const command = args[0] || 'help';
 
 /**
+ * Display beautiful LearnMe banner
+ */
+function showBanner() {
+  console.log('');
+  console.log(chalk.cyan.bold('  ╔═══════════════════════════════════════════════════════╗'));
+  console.log(chalk.cyan.bold('  ║                                                       ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ██╗     ███████╗ █████╗ ██████╗ ███╗   ███╗███████╗') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ██║     ██╔════╝██╔══██╗██╔══██╗████╗ ████║██╔════╝') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ██║     █████╗  ███████║██████╔╝██╔████╔██║█████╗  ') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ██║     ██╔══╝  ██╔══██║██╔══██╗██║╚██╔╝██║██╔══╝  ') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ███████╗███████╗██║  ██║██║  ██║██║ ╚═╝ ██║███████╗') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white.bold('     ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝') + chalk.cyan.bold('    ║'));
+  console.log(chalk.cyan.bold('  ║                                                       ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white('           AI-Powered Learning Platform') + chalk.cyan.bold('              ║'));
+  console.log(chalk.cyan.bold('  ║                                                       ║'));
+  console.log(chalk.cyan.bold('  ╚═══════════════════════════════════════════════════════╝'));
+  console.log('');
+}
+
+/**
  * Show help message
  */
 function showHelp() {
-  console.log(`
-╔══════════════════════════════════════════════════════════╗
-║                                                          ║
-║              🎓 LearnMe Command Line 🎓                 ║
-║                                                          ║
-╚══════════════════════════════════════════════════════════╝
-
-Usage: learnme <command>
-
-Commands:
-  start       Start all services (Python → Node.js → Frontend)
-  stop        Stop all running services
-  status      Check status of all services
-  install     Run setup to install dependencies
-  help        Show this help message
-
-Examples:
-  learnme start      # Start the application
-  learnme status     # Check if services are running
-  learnme install    # Install/update dependencies
-
-For more information, visit: https://github.com/ikhlasbhojani/learnme
-`);
+  showBanner();
+  console.log(chalk.white('Usage: ') + chalk.cyan.bold('learnme <command>\n'));
+  console.log(chalk.white('Commands:'));
+  console.log(chalk.cyan('  start       ') + chalk.gray('Start all services (Python → Node.js → Frontend)'));
+  console.log(chalk.cyan('  stop        ') + chalk.gray('Stop all running services'));
+  console.log(chalk.cyan('  status      ') + chalk.gray('Check status of all services'));
+  console.log(chalk.cyan('  install     ') + chalk.gray('Run setup to install dependencies'));
+  console.log(chalk.cyan('  help        ') + chalk.gray('Show this help message\n'));
+  console.log(chalk.white('Examples:'));
+  console.log(chalk.gray('  learnme start      # Start the application'));
+  console.log(chalk.gray('  learnme status     # Check if services are running'));
+  console.log(chalk.gray('  learnme install    # Install/update dependencies\n'));
+  console.log(chalk.gray('For more information, visit: ') + chalk.cyan.underline('https://github.com/ikhlasbhojani/learnme\n'));
 }
 
 /**
  * Start all services
  */
 function start() {
-  console.log('🚀 Starting LearnMe...\n');
+  showBanner();
+  console.log(chalk.cyan('🚀 Starting LearnMe...\n'));
   const startScript = path.join(projectRoot, 'scripts', 'start-sequential.js');
   
   if (!fs.existsSync(startScript)) {
-    console.error('❌ Start script not found. Make sure you are in the LearnMe project directory.');
+    console.error(chalk.red('❌ Start script not found. Make sure you are in the LearnMe project directory.'));
     process.exit(1);
   }
   
@@ -63,13 +75,13 @@ function start() {
   });
   
   child.on('error', (error) => {
-    console.error(`❌ Failed to start: ${error.message}`);
+    console.error(chalk.red(`❌ Failed to start: ${error.message}`));
     process.exit(1);
   });
   
   // Handle Ctrl+C
   process.on('SIGINT', () => {
-    console.log('\n🛑 Shutting down...');
+    console.log(chalk.yellow('\n🛑 Shutting down...'));
     child.kill();
     process.exit(0);
   });
@@ -84,7 +96,8 @@ function start() {
  * Stop all services (kill processes on ports)
  */
 function stop() {
-  console.log('🛑 Stopping LearnMe services...\n');
+  showBanner();
+  console.log(chalk.yellow('🛑 Stopping LearnMe services...\n'));
   
   const ports = [5173, 5000, 8000];
   const serviceNames = ['Frontend', 'Node.js Backend', 'Python Backend'];
@@ -101,13 +114,13 @@ function stop() {
             const pid = lines[0].split(/\s+/).pop();
             if (pid) {
               execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore' });
-              console.log(`✅ Stopped ${serviceNames[index]} (port ${port})`);
+              console.log(chalk.green(`✅ Stopped ${serviceNames[index]} (port ${port})`));
             }
           } else {
-            console.log(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`);
+            console.log(chalk.gray(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`));
           }
         } catch (e) {
-          console.log(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`);
+          console.log(chalk.gray(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`));
         }
       } else {
         try {
@@ -115,25 +128,26 @@ function stop() {
           const pid = result.trim();
           if (pid) {
             execSync(`kill ${pid}`, { stdio: 'ignore' });
-            console.log(`✅ Stopped ${serviceNames[index]} (port ${port})`);
+            console.log(chalk.green(`✅ Stopped ${serviceNames[index]} (port ${port})`));
           }
         } catch (e) {
-          console.log(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`);
+          console.log(chalk.gray(`ℹ️  ${serviceNames[index]} (port ${port}) is not running`));
         }
       }
     } catch (error) {
-      console.log(`⚠️  Could not stop ${serviceNames[index]} (port ${port})`);
+      console.log(chalk.yellow(`⚠️  Could not stop ${serviceNames[index]} (port ${port})`));
     }
   });
   
-  console.log('\n✅ All services stopped.\n');
+  console.log(chalk.green('\n✅ All services stopped.\n'));
 }
 
 /**
  * Check status of services
  */
 function status() {
-  console.log('📊 Checking LearnMe services status...\n');
+  showBanner();
+  console.log(chalk.blue('📊 Checking LearnMe services status...\n'));
   
   const services = [
     { name: 'Python Backend', url: 'http://localhost:8000/health', port: 8000 },
@@ -146,9 +160,9 @@ function status() {
   services.forEach((service, index) => {
     const req = http.get(service.url, (res) => {
       if (res.statusCode === 200) {
-        console.log(`✅ ${service.name} (port ${service.port}) - Running`);
+        console.log(chalk.green(`✅ ${service.name} (port ${service.port}) - Running`));
       } else {
-        console.log(`⚠️  ${service.name} (port ${service.port}) - Responding but may have issues`);
+        console.log(chalk.yellow(`⚠️  ${service.name} (port ${service.port}) - Responding but may have issues`));
       }
       
       if (index === services.length - 1) {
@@ -158,7 +172,7 @@ function status() {
     });
     
     req.on('error', () => {
-      console.log(`❌ ${service.name} (port ${service.port}) - Not running`);
+      console.log(chalk.red(`❌ ${service.name} (port ${service.port}) - Not running`));
       
       if (index === services.length - 1) {
         console.log('');
@@ -168,7 +182,7 @@ function status() {
     
     req.setTimeout(2000, () => {
       req.destroy();
-      console.log(`❌ ${service.name} (port ${service.port}) - Not responding`);
+      console.log(chalk.red(`❌ ${service.name} (port ${service.port}) - Not responding`));
       
       if (index === services.length - 1) {
         console.log('');
@@ -182,12 +196,13 @@ function status() {
  * Run setup/install
  */
 function install() {
-  console.log('📦 Running LearnMe setup...\n');
+  showBanner();
+  console.log(chalk.green('📦 Running LearnMe setup...\n'));
   
   const setupScript = path.join(projectRoot, 'scripts', 'setup.js');
   
   if (!fs.existsSync(setupScript)) {
-    console.error('❌ Setup script not found. Make sure you are in the LearnMe project directory.');
+    console.error(chalk.red('❌ Setup script not found. Make sure you are in the LearnMe project directory.'));
     process.exit(1);
   }
   
@@ -198,15 +213,15 @@ function install() {
   });
   
   child.on('error', (error) => {
-    console.error(`❌ Setup failed: ${error.message}`);
+    console.error(chalk.red(`❌ Setup failed: ${error.message}`));
     process.exit(1);
   });
   
   child.on('exit', (code) => {
     if (code === 0) {
-      console.log('\n✅ Setup completed successfully!\n');
+      console.log(chalk.green('\n✅ Setup completed successfully!\n'));
     } else {
-      console.log('\n❌ Setup failed. Please check the errors above.\n');
+      console.log(chalk.red('\n❌ Setup failed. Please check the errors above.\n'));
       process.exit(code);
     }
   });
@@ -232,7 +247,7 @@ switch (command) {
     showHelp();
     break;
   default:
-    console.error(`❌ Unknown command: ${command}\n`);
+    console.error(chalk.red(`❌ Unknown command: ${command}\n`));
     showHelp();
     process.exit(1);
 }
