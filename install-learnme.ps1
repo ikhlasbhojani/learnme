@@ -5,6 +5,9 @@ param(
     [string]$Branch = "main"
 )
 
+# If script is being downloaded, use main branch for the repo
+$scriptBranch = "main"
+
 Write-Host "`n╔══════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
 Write-Host "║                                                          ║" -ForegroundColor Cyan
 Write-Host "║              🎓 LearnMe Installation 🎓                 ║" -ForegroundColor Cyan
