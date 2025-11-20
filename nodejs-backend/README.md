@@ -31,27 +31,7 @@ nodejs-backend/
 npm install
 ```
 
-2. Copy environment file:
-```bash
-cp .env.example .env
-```
-
-3. Update `.env` file with your configuration:
-```env
-PORT=5000
-NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/learnme
-CORS_ORIGIN=http://localhost:5173
-JWT_SECRET=your_jwt_secret_key_here
-PYTHON_SERVICE_URL=http://localhost:8000
-```
-
-4. Start MongoDB (if not running):
-```bash
-# Make sure MongoDB is running on localhost:27017
-```
-
-5. Start the server:
+2. Start the server:
 ```bash
 # Development mode (with nodemon)
 npm run dev

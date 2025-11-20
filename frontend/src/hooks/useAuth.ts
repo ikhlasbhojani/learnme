@@ -7,11 +7,16 @@ import { authService } from '../services/authService'
 
 interface StoredUser {
   id: string
-  email: string
+  email?: string
   createdAt: string
   updatedAt: string
   lastLoginAt: string | null
   themePreference: User['themePreference']
+  aiProvider?: User['aiProvider']
+  aiApiKey?: string | null
+  aiModel?: string | null
+  aiBaseUrl?: string | null
+  hasApiKey?: boolean
 }
 
 function serializeUser(user: User): StoredUser {
@@ -22,6 +27,11 @@ function serializeUser(user: User): StoredUser {
     updatedAt: user.updatedAt.toISOString(),
     lastLoginAt: user.lastLoginAt ? user.lastLoginAt.toISOString() : null,
     themePreference: user.themePreference,
+    aiProvider: user.aiProvider,
+    aiApiKey: user.aiApiKey,
+    aiModel: user.aiModel,
+    aiBaseUrl: user.aiBaseUrl,
+    hasApiKey: user.hasApiKey,
   }
 }
 
@@ -33,6 +43,11 @@ function deserializeUser(stored: StoredUser): User {
     updatedAt: new Date(stored.updatedAt),
     lastLoginAt: stored.lastLoginAt ? new Date(stored.lastLoginAt) : null,
     themePreference: stored.themePreference,
+    aiProvider: stored.aiProvider ?? null,
+    aiApiKey: stored.aiApiKey ?? null,
+    aiModel: stored.aiModel ?? null,
+    aiBaseUrl: stored.aiBaseUrl ?? null,
+    hasApiKey: stored.hasApiKey ?? !!stored.aiApiKey,
   }
 }
 
@@ -42,7 +57,7 @@ export interface UseAuthReturn {
   signup: (email: string, password: string) => Promise<AuthResult>
   login: (email: string, password: string) => Promise<AuthResult>
   logout: () => Promise<void>
-  updateProfile: (updates: Partial<Pick<User, 'themePreference'>>) => Promise<User | null>
+  updateProfile: (updates: Partial<Pick<User, 'themePreference' | 'aiProvider' | 'aiApiKey' | 'aiModel' | 'aiBaseUrl'>>) => Promise<User | null>
   refreshUser: () => Promise<User | null>
   loading: boolean
   error: string | null
@@ -59,6 +74,32 @@ export function useAuth(): UseAuthReturn {
 
   // Load user from backend on mount
   useEffect(() => {
+    // MIGRATION 1: Move data from old 'user' key to new 'learnme_user' key
+    try {
+      const oldData = localStorage.getItem('user')
+      const newData = localStorage.getItem('learnme_user')
+      if (oldData && !newData) {
+        console.log('🔄 Migrating user data from old storage key')
+        localStorage.setItem('learnme_user', oldData)
+        localStorage.removeItem('user')
+      }
+    } catch (err) {
+      console.error('Storage migration 1 failed:', err)
+    }
+    
+    // MIGRATION 2: Fix double-prefix bug (learnme_learnme_user → learnme_user)
+    try {
+      const doublePrefix = localStorage.getItem('learnme_learnme_user')
+      const correct = localStorage.getItem('learnme_user')
+      if (doublePrefix && !correct) {
+        console.log('🔄 Fixing double-prefix storage bug')
+        localStorage.setItem('learnme_user', doublePrefix)
+        localStorage.removeItem('learnme_learnme_user')
+      }
+    } catch (err) {
+      console.error('Storage migration 2 failed:', err)
+    }
+
     const loadUser = async () => {
       const stored = getStorageItem<StoredUser>(STORAGE_KEYS.USER)
       
@@ -77,6 +118,17 @@ export function useAuth(): UseAuthReturn {
       try {
         const currentUser = await authService.fetchCurrentUser()
         if (currentUser) {
+          // Check if this browser has been configured
+          const browserConfigured = localStorage.getItem('learnme_ai_configured') === 'true'
+          
+          if (!browserConfigured) {
+            // Clear API key from backend response - force browser configuration
+            currentUser.aiApiKey = undefined
+            currentUser.aiProvider = undefined
+            currentUser.aiModel = undefined
+            currentUser.aiBaseUrl = undefined
+          }
+          
           setStorageItem(STORAGE_KEYS.USER, serializeUser(currentUser))
           setUser(currentUser)
         }
@@ -204,14 +256,24 @@ export function useAuth(): UseAuthReturn {
   }, [navigate])
 
   const updateProfile = useCallback(
-    async (updates: Partial<Pick<User, 'themePreference'>>) => {
+    async (updates: Partial<Pick<User, 'themePreference' | 'aiProvider' | 'aiApiKey' | 'aiModel' | 'aiBaseUrl'>>) => {
       if (!user) {
         return null
       }
 
       try {
+        // If updating AI config, mark browser as configured BEFORE the update
+        if (updates.aiApiKey && updates.aiProvider) {
+          localStorage.setItem('learnme_ai_configured', 'true')
+          console.log('✅ Browser marked as configured (AI key being saved)')
+        }
+        
         const updated = await authService.updateProfile({
           themePreference: updates.themePreference,
+          aiProvider: updates.aiProvider,
+          aiApiKey: updates.aiApiKey,
+          aiModel: updates.aiModel,
+          aiBaseUrl: updates.aiBaseUrl,
         })
         setUser(updated)
         setStorageItem(STORAGE_KEYS.USER, serializeUser(updated))

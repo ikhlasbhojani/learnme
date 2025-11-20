@@ -180,8 +180,14 @@ class Quiz {
     );
 
     // Update answers if provided
-    if (this.answers && Object.keys(this.answers).length > 0) {
-      for (const [questionId, answer] of Object.entries(this.answers)) {
+    const answersObj =
+      this.answers instanceof Map
+        ? Object.fromEntries(this.answers)
+        : this.answers || {};
+
+    if (answersObj && typeof answersObj === 'object' && Object.keys(answersObj).length > 0) {
+      const answerEntries = Object.entries(answersObj);
+      for (const [questionId, answer] of answerEntries) {
         await db.run(
           `INSERT OR REPLACE INTO quiz_answers (quiz_id, question_id, answer, updated_at)
            VALUES (?, ?, ?, ?)`,

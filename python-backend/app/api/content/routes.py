@@ -56,7 +56,7 @@ async def extract_topics(
                     url=str(request.url),
                     user_id=user_id
                 ),
-                timeout=90.0  # 90 second timeout for the entire operation
+                timeout=300.0  # 5 minute timeout for large documentation sites
             )
             
             logger.info(f"Topic extraction completed successfully. Found {result.totalPages} topics.")

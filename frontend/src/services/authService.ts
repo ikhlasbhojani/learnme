@@ -12,12 +12,21 @@ interface SignupPayload extends AuthPayload {
 
 interface UpdateProfilePayload {
   themePreference?: User['themePreference']
+  aiProvider?: User['aiProvider']
+  aiApiKey?: string | null
+  aiModel?: string | null
+  aiBaseUrl?: string | null
 }
 
 interface UserResponse {
   id: string
-  email: string
+  email?: string
   themePreference?: User['themePreference'] | null
+  aiProvider?: User['aiProvider']
+  aiApiKey?: string | null
+  aiModel?: string | null
+  aiBaseUrl?: string | null
+  hasApiKey?: boolean
   createdAt: string
   updatedAt: string
   lastLoginAt?: string | null
@@ -29,6 +38,11 @@ function mapUser(response: UserResponse): User {
     id: response.id,
     email: response.email,
     themePreference: response.themePreference ?? null,
+    aiProvider: response.aiProvider ?? null,
+    aiApiKey: response.aiApiKey ?? null,
+    aiModel: response.aiModel ?? null,
+    aiBaseUrl: response.aiBaseUrl ?? null,
+    hasApiKey: response.hasApiKey ?? !!response.aiApiKey,
     createdAt: new Date(response.createdAt),
     updatedAt: new Date(updatedAt),
     lastLoginAt: response.lastLoginAt ? new Date(response.lastLoginAt) : null,
@@ -36,31 +50,20 @@ function mapUser(response: UserResponse): User {
 }
 
 export async function signup(payload: SignupPayload): Promise<User> {
-  // Node.js backend returns: { message: "...", data: { user: {...}, token: "..." } }
-  // apiClient automatically extracts 'data' field, so response is { user, token }
-  const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/signup', payload)
-  // Store token in localStorage for Authorization header
-  if (response?.token) {
-    localStorage.setItem('auth_token', response.token)
-  }
+  // Simplified auth - no token required
+  const response = await apiClient.post<{ user: UserResponse }>('/auth/signup', payload)
   return mapUser(response.user)
 }
 
 export async function login(payload: AuthPayload): Promise<User> {
-  // Node.js backend returns: { message: "...", data: { user: {...}, token: "..." } }
-  // apiClient automatically extracts 'data' field, so response is { user, token }
-  const response = await apiClient.post<{ user: UserResponse; token: string }>('/auth/login', payload)
-  // Store token in localStorage for Authorization header
-  if (response?.token) {
-    localStorage.setItem('auth_token', response.token)
-  }
+  // Simplified auth - no token required
+  const response = await apiClient.post<{ user: UserResponse }>('/auth/login', payload)
   return mapUser(response.user)
 }
 
 export async function logout(): Promise<void> {
   await apiClient.post('/auth/logout')
-  // Clear token from localStorage
-  localStorage.removeItem('auth_token')
+  // No token to clear in local-user mode
 }
 
 export async function fetchCurrentUser(): Promise<User | null> {

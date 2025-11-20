@@ -2,7 +2,27 @@ const Quiz = require('../models/Quiz.model');
 const ContentInput = require('../models/ContentInput.model');
 const axios = require('axios');
 
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8000';
+const PYTHON_SERVICE_URL = 'http://localhost:8000';
+
+/**
+ * Extract AI config headers from request to forward to Python backend
+ */
+const extractAIHeaders = (req) => {
+  const aiHeaders = {};
+  if (req.headers['x-ai-provider']) {
+    aiHeaders['X-AI-Provider'] = req.headers['x-ai-provider'];
+  }
+  if (req.headers['x-ai-api-key']) {
+    aiHeaders['X-AI-API-Key'] = req.headers['x-ai-api-key'];
+  }
+  if (req.headers['x-ai-model']) {
+    aiHeaders['X-AI-Model'] = req.headers['x-ai-model'];
+  }
+  if (req.headers['x-ai-base-url']) {
+    aiHeaders['X-AI-Base-URL'] = req.headers['x-ai-base-url'];
+  }
+  return aiHeaders;
+};
 
 /**
  * Map difficulty from API format to Quiz model format
@@ -21,6 +41,14 @@ const mapDifficulty = (difficulty) => {
  * Generate quiz from URL/Selected Topics
  */
 const generateQuizFromUrlHandler = async (req, res, next) => {
+  console.log('\n🎯 [QUIZ-GEN] === NEW REQUEST ===');
+  console.log('📨 Request headers (all):', Object.keys(req.headers));
+  console.log('🔑 AI Headers specifically:');
+  console.log('  - x-ai-provider:', req.headers['x-ai-provider'] || '❌ MISSING');
+  console.log('  - x-ai-api-key:', req.headers['x-ai-api-key'] ? '✅ PRESENT' : '❌ MISSING');
+  console.log('  - x-ai-model:', req.headers['x-ai-model'] || '❌ MISSING');
+  console.log('  - x-ai-base-url:', req.headers['x-ai-base-url'] || '❌ MISSING');
+  
   try {
     if (!req.authUser || !req.authUser.userId) {
       req.authUser = { userId: 'local-user', email: 'local@localhost' };
@@ -103,6 +131,13 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
 
     // Call Python service
     try {
+      const aiHeaders = extractAIHeaders(req);
+      console.log('🔍 [generate-from-url] Incoming headers:', {
+        'x-ai-provider': req.headers['x-ai-provider'],
+        'x-ai-api-key': req.headers['x-ai-api-key'] ? '***PRESENT***' : 'MISSING',
+        'x-ai-model': req.headers['x-ai-model'],
+      });
+      console.log('📤 [generate-from-url] Forwarding to Python:', aiHeaders['X-AI-API-Key'] ? '✅ API Key Present' : '❌ API Key MISSING');
       const pythonResponse = await axios.post(
         `${PYTHON_SERVICE_URL}/api/ai/quiz/generate-from-url`,
         {
@@ -115,7 +150,8 @@ const generateQuizFromUrlHandler = async (req, res, next) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': req.authUser.userId
+            'X-User-Id': req.authUser.userId,
+            ...aiHeaders // Forward AI config headers to Python backend
           },
           timeout: 120000 // 120 seconds timeout
         }
@@ -286,6 +322,7 @@ const generateQuizFromDocumentHandler = async (req, res, next) => {
 
     // Call Python service
     try {
+      const aiHeaders = extractAIHeaders(req);
       const pythonResponse = await axios.post(
         `${PYTHON_SERVICE_URL}/api/ai/quiz/generate-from-document`,
         {
@@ -297,7 +334,8 @@ const generateQuizFromDocumentHandler = async (req, res, next) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': req.authUser.userId
+            'X-User-Id': req.authUser.userId,
+            ...aiHeaders // Forward AI config headers to Python backend
           },
           timeout: 120000 // 120 seconds timeout
         }

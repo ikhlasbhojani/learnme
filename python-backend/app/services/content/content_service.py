@@ -1,19 +1,43 @@
 """
 Content Service - Handles content extraction and topic organization.
 """
-from app.services.ai.agents.topic_organization import TopicOrganizationAgent
-from app.services.ai.agents.content_extraction import ContentExtractionAgent
-from app.core.gemini_client import gemini_client
 from app.models.schemas import ExtractTopicsResponse, ExtractContentResponse
-from typing import List
+from typing import List, Optional
+from agents import AsyncOpenAI
 
 
 class ContentService:
     """Service for content-related operations."""
     
-    def __init__(self):
-        self.topic_agent = TopicOrganizationAgent(gemini_client)
-        self.content_agent = ContentExtractionAgent(gemini_client)
+    def __init__(self, ai_client: Optional[AsyncOpenAI] = None):
+        """
+        Initialize content service.
+        
+        Args:
+            ai_client: Optional AI client for content extraction (provided per-request with user's API key)
+        """
+        # AI client is set per-request with user's API key
+        self._ai_client = ai_client
+        self._content_agent = None
+    
+    def set_ai_client(self, ai_client: AsyncOpenAI, model: str):
+        """
+        Set AI client for this request (with user's API key and model).
+        
+        Args:
+            ai_client: OpenAI-compatible client (AsyncOpenAI)
+            model: User-selected model name (REQUIRED - no defaults)
+        """
+        from app.services.ai.agents.content_extraction import ContentExtractionAgent
+        self._ai_client = ai_client
+        self._content_agent = ContentExtractionAgent(ai_client, model)
+    
+    @property
+    def content_agent(self):
+        """Get content agent (must be set via set_ai_client first)."""
+        if self._content_agent is None:
+            raise RuntimeError("AI client not configured. Call set_ai_client() first with user's API key.")
+        return self._content_agent
     
     async def extract_topics(
         self,
@@ -30,22 +54,68 @@ class ContentService:
         Returns:
             ExtractTopicsResponse with organized topics
         """
-        # Try to use Topic Organization Agent first
-        try:
-            result = await self.topic_agent.organize_topics(url, user_id)
-        except Exception as e:
-            # If agent fails, use tool directly
-            result = None
+        # DISABLED: AI agent generates fake topics
+        # Skip agent completely and use only real extraction
+        # try:
+        #     result = await self.topic_agent.organize_topics(url, user_id)
+        # except Exception as e:
+        #     result = None
         
-        # If agent returned fewer topics than expected OR failed, use tool output directly
-        # Tool typically extracts 80-100 topics, agent might filter them
-        if result is None or (result and result.totalPages < 50):
-            # Use tool directly to get all topics
-            from app.services.ai.tools.url_extraction import _extract_urls_from_html, _organize_urls_to_topics
+        result = None  # Force real extraction (no AI-generated topics)
+        
+        # Always use direct extraction to get real URLs from documentation
+        if True:  # Always extract (was: result is None or result.totalPages < 50)
+            # Import the extraction logic directly (bypass tool wrapper)
+            from app.services.ai.tools.url_extraction import (
+                URLExtractionContext,
+                URLExtractionResult,
+                _extract_urls_recursively_bfs,
+                _organize_urls_to_topics_with_depth
+            )
+            import json
             
-            # Extract URLs directly with titles
-            urls_with_titles = await _extract_urls_from_html(url, None)
-            tool_topics = _organize_urls_to_topics(urls_with_titles, url)
+            try:
+                # Create extraction context optimized for speed with validation
+                context = URLExtractionContext(
+                    userId=user_id,
+                    mainUrl=url,
+                    extraction_mode="http",  # Force HTTP mode
+                    strict_mode=True,  # Validate URLs exist (HTTP HEAD requests)
+                    max_depth=0,  # Only extract from main page (don't follow links)
+                    max_urls_per_level=1000,  # Allow many URLs from main page
+                    timeout=30  # Timeout for validation requests
+                )
+                
+                # BROWSER MODE DISABLED: Not working reliably on Windows
+                # Always use HTTP-based extraction (fast and reliable)
+                print("🔗 Using HTTP-based extraction (browser mode disabled)...")
+                
+                # HTTP-based extraction
+                extraction_payload = await _extract_urls_recursively_bfs(url, context)
+                
+                topics_payload = _organize_urls_to_topics_with_depth(
+                    extraction_payload["records"],
+                    url,
+                    strict_mode=context.strict_mode,
+                    skipped=extraction_payload["skipped"],
+                    unverified=extraction_payload["unverified"],
+                    metadata=extraction_payload["metadata"]
+                )
+                
+                # Convert to Topic objects
+                from app.services.ai.tools.url_extraction import Topic
+                tool_topics = topics_payload["topics"]
+                
+            except Exception as e:
+                # If extraction fails, raise with context
+                raise Exception(
+                    f"Failed to extract topics from URL: {url}\n"
+                    f"Error: {str(e)}\n"
+                    f"Please verify:\n"
+                    f"  - The URL is correct and accessible\n"
+                    f"  - You have internet connectivity\n"
+                    f"  - The site is not behind authentication"
+                )
             
             # Use tool output if agent failed or has fewer topics
             if result is None or len(tool_topics) > len(result.topics):

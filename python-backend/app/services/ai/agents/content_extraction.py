@@ -27,15 +27,22 @@ class ContentExtractionAgent:
     Agent jo URLs se content extract karta hai aur AI se clean/summarize karta hai.
     """
     
-    def __init__(self, gemini_client):
+    def __init__(self, gemini_client, model: str):
+        """
+        Initialize content extraction agent.
+        
+        Args:
+            gemini_client: OpenAI-compatible client (AsyncOpenAI)
+            model: User-selected model name (e.g., 'gemini-2.5-flash', 'gpt-4o', etc.)
+        """
+        self.client = gemini_client
         self.agent = Agent(
             name="Content Extraction Agent",
             instructions=self._get_instructions(),
-            model="gemini-2.0-flash",
+            model=model,  # ALWAYS use user-selected model (no defaults)
             tools=[],  # No tools, but uses httpx/BeautifulSoup externally
             output_type=ContentExtractionOutput  # Structured output type
         )
-        self.client = gemini_client
     
     def _get_instructions(self) -> str:
         return """

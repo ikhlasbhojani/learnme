@@ -23,15 +23,22 @@ class QuizAnalysisAgent:
     Agent jo completed quiz ka analysis generate karta hai.
     """
     
-    def __init__(self, gemini_client):
+    def __init__(self, gemini_client, model: str):
+        """
+        Initialize quiz analysis agent.
+        
+        Args:
+            gemini_client: OpenAI-compatible client (AsyncOpenAI)
+            model: User-selected model name (e.g., 'gemini-2.5-flash', 'gpt-4o', 'gpt-5', etc.)
+        """
+        self.client = gemini_client
         self.agent = Agent(
             name="Quiz Analysis Agent",
             instructions=self._get_instructions(),
-            model="gemini-2.0-flash",
+            model=model,  # ALWAYS use user-selected model (no defaults)
             tools=[],  # No tools needed
             output_type=QuizAnalysisOutput  # Structured output type
         )
-        self.client = gemini_client
     
     def _get_instructions(self) -> str:
         return """

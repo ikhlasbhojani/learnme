@@ -1,12 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const dotenv = require('dotenv');
 const { connectDB } = require('./src/config/db');
 const { initializeSchema } = require('./src/config/schema');
-
-// Load environment variables
-dotenv.config();
 
 // Create Express app
 const app = express();
@@ -17,10 +13,18 @@ const app = express();
 
 // CORS middleware - Allow requests from frontend
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  origin: 'http://localhost:5173',
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'DELETE', 'PUT', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization',
+    'X-AI-Provider',
+    'X-AI-API-Key',
+    'X-AI-Model',
+    'X-AI-Base-URL',
+    'X-User-Id'
+  ]
 }));
 
 // Cookie parser middleware - Parse cookies from requests
@@ -30,13 +34,11 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Request logging middleware (development only)
-if (process.env.NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
-}
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
 
 // ============================================
 // Routes
@@ -123,7 +125,7 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error',
-    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    error: err.stack
   });
 });
 
@@ -131,8 +133,7 @@ app.use((err, req, res, next) => {
 // Server Configuration
 // ============================================
 
-const PORT = process.env.PORT || 5000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
+const PORT = 5000;
 
 // Connect to SQLite and start server
 (async () => {
@@ -145,10 +146,9 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
       console.log('🚀 LearnMe Node.js Backend');
       console.log('=================================');
       console.log(`✅ Server is running on http://localhost:${PORT}`);
-      console.log(`📦 Environment: ${NODE_ENV}`);
-      console.log(`🗄️  Database: ${process.env.DATABASE_PATH || './data/learnme.db'}`);
-      console.log(`🌐 CORS Origin: ${process.env.CORS_ORIGIN || 'http://localhost:5173'}`);
-      console.log(`🐍 Python Service: ${process.env.PYTHON_SERVICE_URL || 'http://localhost:8000'}`);
+      console.log(`🗄️  Database: ./data/learnme.db`);
+      console.log(`🌐 CORS Origin: http://localhost:5173`);
+      console.log(`🐍 Python Service: http://localhost:8000`);
       console.log('=================================');
     });
   } catch (error) {

@@ -4,7 +4,6 @@ Quiz Service - Handles quiz generation and analysis.
 from app.services.ai.agents.quiz_generation import QuizGenerationAgent
 from app.services.ai.agents.quiz_analysis import QuizAnalysisAgent
 from app.services.content.content_service import ContentService
-from app.core.gemini_client import gemini_client
 from app.models.schemas import (
     GenerateQuizFromUrlRequest,
     GenerateQuizFromDocumentRequest,
@@ -13,15 +12,51 @@ from app.models.schemas import (
     SelectedTopic
 )
 from typing import Dict, Optional
+from agents import AsyncOpenAI
 
 
 class QuizService:
     """Service for quiz-related operations."""
     
-    def __init__(self):
-        self.quiz_agent = QuizGenerationAgent(gemini_client)
-        self.analysis_agent = QuizAnalysisAgent(gemini_client)
+    def __init__(self, ai_client: Optional[AsyncOpenAI] = None):
+        """
+        Initialize quiz service.
+        
+        Args:
+            ai_client: Optional AI client (provided per-request with user's API key)
+        """
+        # AI clients are set per-request with user's API key
+        self._ai_client = ai_client
+        self._quiz_agent = None
+        self._analysis_agent = None
         self.content_service = ContentService()
+    
+    def set_ai_client(self, ai_client: AsyncOpenAI, model: str):
+        """
+        Set AI client for this request (with user's API key and model).
+        
+        Args:
+            ai_client: OpenAI-compatible client (AsyncOpenAI)
+            model: User-selected model name (REQUIRED - no defaults)
+        """
+        self._ai_client = ai_client
+        self._quiz_agent = QuizGenerationAgent(ai_client, model)
+        self._analysis_agent = QuizAnalysisAgent(ai_client, model)
+        self.content_service.set_ai_client(ai_client, model)
+    
+    @property
+    def quiz_agent(self):
+        """Get quiz agent (must be set via set_ai_client first)."""
+        if self._quiz_agent is None:
+            raise RuntimeError("AI client not configured. Call set_ai_client() first with user's API key.")
+        return self._quiz_agent
+    
+    @property
+    def analysis_agent(self):
+        """Get analysis agent (must be set via set_ai_client first)."""
+        if self._analysis_agent is None:
+            raise RuntimeError("AI client not configured. Call set_ai_client() first with user's API key.")
+        return self._analysis_agent
     
     async def generate_quiz_from_url(
         self,

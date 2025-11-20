@@ -1,38 +1,51 @@
 const { getDB } = require('../config/db');
 
-/**
- * Generate custom ID
- */
-const generateId = (prefix) => {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
-};
-
-/**
- * User Model
- */
 class User {
   /**
    * Create a new user
    */
-  static async create(userData) {
+  static async create(userData = {}) {
     const db = getDB();
-    const id = generateId('user');
+    const id = userData.id || `user-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     const now = new Date().toISOString();
 
     await db.run(
-      `INSERT INTO users (id, email, password_hash, theme_preference, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (id, theme_preference, ai_provider, ai_api_key, ai_model, ai_base_url, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
-        userData.email.toLowerCase(),
-        userData.passwordHash,
         userData.themePreference || null,
+        userData.aiProvider || null,
+        userData.aiApiKey || null,
+        userData.aiModel || null,
+        userData.aiBaseUrl || null,
         now,
         now
       ]
     );
 
     return User.findById(id);
+  }
+
+  /**
+   * Ensure a user exists (creates if missing)
+   */
+  static async ensure(userId = 'local-user') {
+    const existing = await User.findById(userId);
+    if (existing) {
+      return existing;
+    }
+
+    const db = getDB();
+    const now = new Date().toISOString();
+
+    await db.run(
+      `INSERT INTO users (id, theme_preference, created_at, updated_at)
+       VALUES (?, ?, ?, ?)`,
+      [userId, null, now, now]
+    );
+
+    return User.findById(userId);
   }
 
   /**
@@ -45,18 +58,6 @@ class User {
   }
 
   /**
-   * Find user by email
-   */
-  static async findOne(query) {
-    const db = getDB();
-    if (query.email) {
-      const row = await db.get('SELECT * FROM users WHERE email = ?', [query.email.toLowerCase()]);
-      return row ? User._mapRowToUser(row) : null;
-    }
-    return null;
-  }
-
-  /**
    * Update user
    */
   async save() {
@@ -65,13 +66,14 @@ class User {
 
     await db.run(
       `UPDATE users 
-       SET email = ?, password_hash = ?, theme_preference = ?, last_login_at = ?, updated_at = ?
+       SET theme_preference = ?, ai_provider = ?, ai_api_key = ?, ai_model = ?, ai_base_url = ?, updated_at = ?
        WHERE id = ?`,
       [
-        this.email,
-        this.passwordHash,
         this.themePreference,
-        this.lastLoginAt,
+        this.aiProvider,
+        this.aiApiKey,
+        this.aiModel,
+        this.aiBaseUrl,
         now,
         this.id
       ]
@@ -81,17 +83,25 @@ class User {
   }
 
   /**
-   * Convert to JSON (exclude passwordHash)
+   * Convert to JSON (exclude sensitive data like apiKey in some contexts)
    */
-  toJSON() {
+  toJSON(includeSensitive = false) {
     const obj = {
       id: this.id,
-      email: this.email,
       themePreference: this.themePreference,
-      lastLoginAt: this.lastLoginAt,
+      aiProvider: this.aiProvider,
+      aiModel: this.aiModel,
+      aiBaseUrl: this.aiBaseUrl,
+      hasApiKey: !!this.aiApiKey, // Boolean flag instead of actual key
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
     };
+    
+    // Only include API key if explicitly requested (for user settings page)
+    if (includeSensitive) {
+      obj.aiApiKey = this.aiApiKey;
+    }
+    
     return obj;
   }
 
@@ -101,10 +111,11 @@ class User {
   static _mapRowToUser(row) {
     const user = new User();
     user.id = row.id;
-    user.email = row.email;
-    user.passwordHash = row.password_hash;
     user.themePreference = row.theme_preference;
-    user.lastLoginAt = row.last_login_at;
+    user.aiProvider = row.ai_provider;
+    user.aiApiKey = row.ai_api_key;
+    user.aiModel = row.ai_model;
+    user.aiBaseUrl = row.ai_base_url;
     user.createdAt = row.created_at;
     user.updatedAt = row.updated_at;
     return user;

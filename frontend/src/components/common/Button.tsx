@@ -23,20 +23,20 @@ export const Button: React.FC<ButtonProps> = ({
   // Base classes - GitHub-inspired sleek design
   const baseClasses = 'inline-flex items-center justify-center gap-2 font-semibold rounded-md transition-all duration-150 ease-in-out whitespace-nowrap select-none outline-none relative font-sans border'
   
-  // Variant classes - Perfect GitHub button styles with proper text colors for light and dark theme
+  // Variant classes - Professional, modern button styles with perfect contrast
   const variantClasses = {
     primary: isDark 
-      ? 'bg-[#21262d] text-white border-[#30363d] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-[#30363d] hover:border-[#484f58] hover:text-white hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.08)] active:bg-[#161b22] active:border-[#21262d] active:text-white active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]'
-      : 'bg-[#24292f] text-white border-[#24292f] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] hover:bg-[#161b22] hover:border-[#161b22] hover:text-white hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] active:bg-[#0d1117] active:border-[#0d1117] active:text-white active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]',
+      ? 'bg-[#238636] text-white border-[#238636] shadow-[0_1px_0_0_rgba(0,0,0,0.1)] hover:bg-[#2ea043] hover:border-[#2ea043] hover:shadow-[0_4px_8px_rgba(0,0,0,0.2)] active:bg-[#1a7f30] active:shadow-inner transition-all duration-200'
+      : 'bg-[#0969da] text-white border-[#0969da] shadow-[0_1px_0_0_rgba(0,0,0,0.05)] hover:bg-[#0550ae] hover:border-[#0550ae] hover:shadow-[0_4px_8px_rgba(9,105,218,0.3)] active:bg-[#033d8b] active:shadow-inner transition-all duration-200',
     secondary: isDark
-      ? 'bg-[#161b22] text-[#c9d1d9] border-[#30363d] shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.03)] hover:bg-[#21262d] hover:border-[#484f58] hover:text-[#c9d1d9] hover:shadow-[0_1px_0_0_rgba(27,31,36,0.1),inset_0_1px_0_0_rgba(255,255,255,0.05)] active:bg-[#161b22] active:border-[#161b22] active:text-[#c9d1d9] active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.2)]'
-      : 'bg-[#ffffff] text-[#24292f] border-[#d1d9de] shadow-[0_1px_0_0_rgba(27,31,36,0.04),inset_0_1px_0_0_rgba(0,0,0,0.02)] hover:bg-[#f6f8fa] hover:border-[#d0d7de] hover:text-[#24292f] hover:shadow-[0_1px_0_0_rgba(27,31,36,0.04),inset_0_1px_0_0_rgba(0,0,0,0.02)] active:bg-[#f3f4f6] active:border-[#d0d7de] active:text-[#24292f] active:shadow-[inset_0_1px_0_0_rgba(0,0,0,0.05)]',
+      ? 'bg-[#161b22] text-[#e6edf3] border-[#30363d] shadow-[0_1px_0_0_rgba(0,0,0,0.1)] hover:bg-[#1c2128] hover:border-[#484f58] hover:shadow-[0_4px_8px_rgba(0,0,0,0.15)] active:bg-[#0d1117] active:shadow-inner transition-all duration-200'
+      : 'bg-[#f6f8fa] text-[#1f2328] border-[#d1d9e0] shadow-[0_1px_0_0_rgba(0,0,0,0.04)] hover:bg-[#eaeef2] hover:border-[#a8b3c0] hover:shadow-[0_4px_8px_rgba(0,0,0,0.08)] active:bg-[#d1d9e0] active:shadow-inner transition-all duration-200',
     outline: isDark
-      ? 'bg-transparent border-[#30363d] text-[#c9d1d9] shadow-none hover:bg-[#21262d] hover:border-[#484f58] hover:text-[#c9d1d9] active:bg-[#161b22] active:border-[#30363d] active:text-[#c9d1d9]'
-      : 'bg-transparent border-[#d1d9de] text-[#24292f] shadow-none hover:bg-[#f6f8fa] hover:border-[#d0d7de] hover:text-[#24292f] active:bg-[#f3f4f6] active:border-[#d1d9de] active:text-[#24292f]',
+      ? 'bg-transparent border-[#484f58] text-[#e6edf3] hover:bg-[#161b22] hover:border-[#58a6ff] hover:text-[#58a6ff] hover:shadow-[0_0_0_1px_#58a6ff_inset] active:bg-[#0d1117] transition-all duration-200'
+      : 'bg-transparent border-[#d1d9e0] text-[#1f2328] hover:bg-[#f6f8fa] hover:border-[#0969da] hover:text-[#0969da] hover:shadow-[0_0_0_1px_#0969da_inset] active:bg-[#eaeef2] transition-all duration-200',
     ghost: isDark
-      ? 'bg-transparent border-transparent text-[#c9d1d9] shadow-none hover:bg-[#21262d] hover:text-[#c9d1d9] active:bg-[#161b22] active:text-[#c9d1d9]'
-      : 'bg-transparent border-transparent text-[#24292f] shadow-none hover:bg-[#f6f8fa] hover:text-[#24292f] active:bg-[#f3f4f6] active:text-[#24292f]',
+      ? 'bg-transparent border-transparent text-[#e6edf3] hover:bg-[#161b22] hover:text-[#58a6ff] active:bg-[#1c2128] transition-all duration-200'
+      : 'bg-transparent border-transparent text-[#1f2328] hover:bg-[#f6f8fa] hover:text-[#0969da] active:bg-[#eaeef2] transition-all duration-200',
   }
   
   // Size classes - Perfect GitHub button sizes

@@ -9,6 +9,9 @@ export interface ModalProps {
   title?: string
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  showCloseButton?: boolean
+  closeOnBackdrop?: boolean
+  closeOnEscape?: boolean
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -17,20 +20,23 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   size = 'md',
+  showCloseButton = true,
+  closeOnBackdrop = true,
+  closeOnEscape = true,
 }) => {
   const { isDark } = useTheme()
   const colors = getThemeColors(isDark)
   
-  // Close on Escape key
+  // Close on Escape key (only if allowed)
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+      if (e.key === 'Escape' && isOpen && closeOnEscape) {
         onClose()
       }
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, closeOnEscape])
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -60,7 +66,7 @@ export const Modal: React.FC<ModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={closeOnBackdrop ? onClose : undefined}
             style={{
               position: 'fixed',
               top: 0,
@@ -111,21 +117,23 @@ export const Modal: React.FC<ModalProps> = ({
                   >
                     {title}
                   </h2>
-                  <button
-                    onClick={onClose}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      fontSize: '24px',
-                      cursor: 'pointer',
-                      color: colors.gray[500],
-                      padding: theme.spacing.xs,
-                      lineHeight: 1,
-                    }}
-                    aria-label="Close modal"
-                  >
-                    ×
-                  </button>
+                  {showCloseButton && (
+                    <button
+                      onClick={onClose}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        fontSize: '24px',
+                        cursor: 'pointer',
+                        color: colors.gray[500],
+                        padding: theme.spacing.xs,
+                        lineHeight: 1,
+                      }}
+                      aria-label="Close modal"
+                    >
+                      ×
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{ padding: theme.spacing.lg }}>{children}</div>

@@ -25,10 +25,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (typeof window !== 'undefined') {
       const stored = getStorageItem<ThemeName>('theme')
       if (stored && (stored === 'light' || stored === 'dark')) {
-        // Apply immediately
+        // Apply immediately with improved colors
         document.documentElement.setAttribute('data-theme', stored)
         document.body.style.background = stored === 'dark' ? '#0d1117' : '#ffffff'
-        document.body.style.color = stored === 'dark' ? '#c9d1d9' : '#24292f'
+        document.body.style.color = stored === 'dark' ? '#e6edf3' : '#1f2328'
         return stored
       }
     }
@@ -40,8 +40,19 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (typeof document !== 'undefined') {
       document.documentElement.setAttribute('data-theme', theme)
       const isDark = theme === 'dark'
+      
+      // Apply optimized theme colors with smooth transitions
       document.body.style.background = isDark ? '#0d1117' : '#ffffff'
-      document.body.style.color = isDark ? '#c9d1d9' : '#24292f'
+      document.body.style.color = isDark ? '#e6edf3' : '#1f2328'
+      
+      // Update meta theme color for mobile browsers
+      let metaTheme = document.querySelector('meta[name="theme-color"]')
+      if (!metaTheme) {
+        metaTheme = document.createElement('meta')
+        metaTheme.setAttribute('name', 'theme-color')
+        document.head.appendChild(metaTheme)
+      }
+      metaTheme.setAttribute('content', isDark ? '#0d1117' : '#ffffff')
     }
   }, [theme])
 

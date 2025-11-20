@@ -2,15 +2,32 @@
  * Python Service API Client
  * Connects to the Python FastAPI service (port 8000)
  */
-const DEFAULT_PYTHON_API_BASE = 'http://localhost:8000/api'
-
-const pythonApiBaseUrl = import.meta.env.VITE_PYTHON_API_URL ?? DEFAULT_PYTHON_API_BASE
+const pythonApiBaseUrl = 'http://localhost:8000/api'
 
 type RequestMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 interface RequestOptions extends RequestInit {
   method?: RequestMethod
   parseJson?: boolean
+}
+
+/**
+ * Get user from localStorage to extract AI configuration
+ */
+function getUserFromStorage(): { aiProvider?: string; aiApiKey?: string; aiModel?: string; aiBaseUrl?: string } | null {
+  try {
+    const stored = localStorage.getItem('learnme_user')
+    if (!stored) return null
+    const user = JSON.parse(stored)
+    return {
+      aiProvider: user.aiProvider,
+      aiApiKey: user.aiApiKey,
+      aiModel: user.aiModel,
+      aiBaseUrl: user.aiBaseUrl,
+    }
+  } catch {
+    return null
+  }
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -21,10 +38,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     baseHeaders.set('Content-Type', 'application/json')
   }
 
-  // Add Authorization header with token from localStorage if available
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    baseHeaders.set('Authorization', `Bearer ${token}`)
+  // Add AI configuration headers from user's stored config (REQUIRED for Python backend)
+  const userConfig = getUserFromStorage()
+  if (userConfig?.aiProvider && userConfig?.aiApiKey) {
+    baseHeaders.set('X-AI-Provider', userConfig.aiProvider)
+    baseHeaders.set('X-AI-API-Key', userConfig.aiApiKey)
+    if (userConfig.aiModel) {
+      baseHeaders.set('X-AI-Model', userConfig.aiModel)
+    }
+    if (userConfig.aiBaseUrl) {
+      baseHeaders.set('X-AI-Base-URL', userConfig.aiBaseUrl)
+    }
   }
 
   if (headers) {

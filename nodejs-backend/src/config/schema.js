@@ -9,21 +9,61 @@ const initializeSchema = async () => {
   // Enable foreign keys
   await db.pragma('foreign_keys = ON');
 
-  // Create Users table
+  // Detect legacy users table with email/password columns
+  const userTableInfo = await db.all(`PRAGMA table_info(users);`);
+  const hasLegacyUserTable =
+    Array.isArray(userTableInfo) &&
+    userTableInfo.length > 0 &&
+    userTableInfo.some((column) => column.name === 'email');
+
+  if (hasLegacyUserTable) {
+    await db.exec('DROP TABLE IF EXISTS users;');
+  }
+
+  // Create Users table (without email/password)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
       theme_preference TEXT CHECK(theme_preference IN ('light', 'dark', 'blue', 'green')),
-      last_login_at DATETIME,
       created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
-    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
     CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
   `);
+
+  // Migrate: Add AI config columns if they don't exist
+  const currentColumns = await db.all(`PRAGMA table_info(users);`);
+  const columnNames = currentColumns.map((col) => col.name);
+
+  if (!columnNames.includes('ai_provider')) {
+    await db.exec(`ALTER TABLE users ADD COLUMN ai_provider TEXT CHECK(ai_provider IN ('gemini', 'openai'));`);
+    console.log('✅ Added ai_provider column to users table');
+  }
+
+  if (!columnNames.includes('ai_api_key')) {
+    await db.exec(`ALTER TABLE users ADD COLUMN ai_api_key TEXT;`);
+    console.log('✅ Added ai_api_key column to users table');
+  }
+
+  if (!columnNames.includes('ai_model')) {
+    await db.exec(`ALTER TABLE users ADD COLUMN ai_model TEXT;`);
+    console.log('✅ Added ai_model column to users table');
+  }
+
+  if (!columnNames.includes('ai_base_url')) {
+    await db.exec(`ALTER TABLE users ADD COLUMN ai_base_url TEXT;`);
+    console.log('✅ Added ai_base_url column to users table');
+  }
+
+  // Seed local user for anonymous usage
+  await db.run(
+    `
+      INSERT OR IGNORE INTO users (id)
+      VALUES (?)
+    `,
+    ['local-user']
+  );
 
   // Create Content Inputs table
   await db.exec(`

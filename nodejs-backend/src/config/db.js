@@ -3,7 +3,7 @@ const { promisify } = require('util');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = process.env.DATABASE_PATH || path.join(__dirname, '../../data/learnme.db');
+const dbPath = path.join(__dirname, '../../data/learnme.db');
 const dbDir = path.dirname(dbPath);
 
 // Ensure directory exists
@@ -25,7 +25,7 @@ const connectDB = () => {
       return pdb;
     }
 
-    sqlite3.verbose(process.env.NODE_ENV === 'development');
+    sqlite3.verbose();
     db = new sqlite3.Database(dbPath);
 
     // Promisified API

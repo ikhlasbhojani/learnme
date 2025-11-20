@@ -1,7 +1,7 @@
 const ContentInput = require('../models/ContentInput.model');
 const axios = require('axios');
 
-const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'http://localhost:8000';
+const PYTHON_SERVICE_URL = 'http://localhost:8000';
 const LOCAL_USER_ID = 'local-user';
 
 /**
@@ -59,6 +59,21 @@ const extractTopicsHandler = async (req, res, next) => {
     console.log('🐍 Calling Python service:', `${PYTHON_SERVICE_URL}/api/ai/content/extract-topics`);
     console.log('⏳ Waiting for Python service response...\n');
 
+    // Extract AI config headers from request (user's API key)
+    const aiHeaders = {};
+    if (req.headers['x-ai-provider']) {
+      aiHeaders['X-AI-Provider'] = req.headers['x-ai-provider'];
+    }
+    if (req.headers['x-ai-api-key']) {
+      aiHeaders['X-AI-API-Key'] = req.headers['x-ai-api-key'];
+    }
+    if (req.headers['x-ai-model']) {
+      aiHeaders['X-AI-Model'] = req.headers['x-ai-model'];
+    }
+    if (req.headers['x-ai-base-url']) {
+      aiHeaders['X-AI-Base-URL'] = req.headers['x-ai-base-url'];
+    }
+
     // Call Python service
     try {
       const response = await axios.post(
@@ -70,7 +85,8 @@ const extractTopicsHandler = async (req, res, next) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            'X-User-Id': userId
+            'X-User-Id': userId,
+            ...aiHeaders // Forward AI config headers to Python backend
           },
           timeout: 120000 // 120 seconds timeout (Python service can take time for topic extraction)
         }

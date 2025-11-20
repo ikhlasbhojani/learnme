@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authenticate } = require('../middlewares/auth.middleware');
 const {
   listQuizzesHandler,
   createQuizHandler,
@@ -13,7 +14,10 @@ const {
   getQuizAssessmentHandler
 } = require('../controllers/quiz.controller');
 
-// Quiz routes (no authentication required for open-source mode)
+// Apply auth middleware to all quiz routes (simplified local-user mode)
+router.use(authenticate);
+
+// Quiz routes
 router.get('/', listQuizzesHandler);
 router.post('/', createQuizHandler);
 router.get('/:id', getQuizHandler);

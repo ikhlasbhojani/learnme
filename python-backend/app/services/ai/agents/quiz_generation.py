@@ -42,15 +42,22 @@ class QuizGenerationAgent:
     Agent jo content se quiz questions generate karta hai.
     """
     
-    def __init__(self, gemini_client):
+    def __init__(self, gemini_client, model: str):
+        """
+        Initialize quiz generation agent.
+        
+        Args:
+            gemini_client: OpenAI-compatible client (AsyncOpenAI)
+            model: User-selected model name (e.g., 'gemini-2.5-flash', 'gpt-4o', 'gpt-4-turbo', etc.)
+        """
+        self.client = gemini_client
         self.agent = Agent(
             name="Quiz Generation Agent",
             instructions=self._get_instructions(),
-            model="gemini-2.0-flash",
+            model=model,  # ALWAYS use user-selected model (no defaults)
             tools=[],  # No tools needed
             output_type=QuizGenerationOutput  # Structured output type
         )
-        self.client = gemini_client
     
     def _get_instructions(self) -> str:
         return """

@@ -1,0 +1,45 @@
+{
+  "name": "learnme",
+  "version": "1.0.0",
+  "description": "AI-Powered Learning Platform - Transform any web content into personalized quizzes",
+  "main": "index.js",
+  "scripts": {
+    "setup": "node scripts/setup.js",
+    "start": "concurrently --kill-others --names \"FRONTEND,NODEJS,PYTHON\" --prefix-colors \"cyan,green,yellow\" \"cd frontend && npm run dev\" \"cd nodejs-backend && npm run dev\" \"cd python-backend && uv run uvicorn app.main:app --reload\"",
+    "dev": "npm start",
+    "install:frontend": "cd frontend && npm install",
+    "install:nodejs": "cd nodejs-backend && npm install",
+    "install:python": "cd python-backend && uv sync",
+    "install:uv": "node scripts/install-uv.js",
+    "playwright:install": "cd python-backend && uv run playwright install",
+    "test": "echo \"Run tests in each service directory\" && exit 0",
+    "lint": "echo \"Run linters in each service directory\" && exit 0"
+  },
+  "keywords": [
+    "learning",
+    "ai",
+    "quiz",
+    "education",
+    "gemini",
+    "openai",
+    "fastapi",
+    "react",
+    "typescript"
+  ],
+  "author": "LearnMe Contributors",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "chalk": "^4.1.2"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/LearnMe.git"
+  }
+}
+

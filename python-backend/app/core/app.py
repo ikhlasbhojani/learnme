@@ -1,6 +1,14 @@
 """
 FastAPI application setup.
 """
+import sys
+import asyncio
+
+# Fix for Windows subprocess + asyncio issue with Playwright
+if sys.platform == 'win32':
+    # Use ProactorEventLoop on Windows for subprocess support
+    asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse

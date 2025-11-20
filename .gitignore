@@ -3,13 +3,8 @@ node_modules/
 .pnp
 .pnp.js
 
-# Environment Variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.*.local
+# Environment Variables (not used - configurations are hardcoded)
+# .env files are not needed for this project
 
 # Build outputs
 dist/
@@ -108,3 +103,21 @@ data/
 coverage/
 .nyc_output/
 .jest/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.uv/
+.venv/
+venv/
+ENV/
+env/
+
+# Playwright
+.playwright/
+
+# Development Planning (not for production)
+PLAN.md

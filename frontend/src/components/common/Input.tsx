@@ -23,26 +23,27 @@ export const Input: React.FC<InputProps> = ({
       {label && (
         <label
           htmlFor={inputId}
-          className={`block mb-2 text-sm font-medium ${isDark ? 'text-[#c9d1d9]' : 'text-[#24292f]'}`}
+          className={`block mb-2 text-sm font-semibold ${isDark ? 'text-[#e6edf3]' : 'text-[#1f2328]'}`}
         >
           {label}
           {props.required && (
-            <span className={isDark ? 'text-[#f85149]' : 'text-[#cf222e]'}> *</span>
+            <span className={isDark ? 'text-[#f85149]' : 'text-[#cf222e]'} aria-label="required"> *</span>
           )}
         </label>
       )}
       <input
         id={inputId}
         className={`
-          w-full px-4 py-2 text-base rounded-md border transition-all duration-300
-          outline-none focus:ring-2 focus:ring-offset-0
+          w-full px-4 py-2.5 text-base rounded-md border transition-all duration-200
+          outline-none focus:ring-2 focus:ring-offset-0 font-normal
+          placeholder:text-gray-400 dark:placeholder:text-gray-500
           ${error
             ? isDark
-              ? 'border-[#f85149] focus:ring-[#f85149] focus:border-[#f85149]'
-              : 'border-[#cf222e] focus:ring-[#cf222e] focus:border-[#cf222e]'
+              ? 'border-[#f85149] focus:ring-[#f85149]/30 focus:border-[#f85149] bg-[#161b22] text-[#e6edf3]'
+              : 'border-[#cf222e] focus:ring-[#cf222e]/20 focus:border-[#cf222e] bg-[#ffffff] text-[#1f2328]'
             : isDark
-              ? 'border-[#30363d] bg-[#0d1117] text-[#c9d1d9] focus:border-[#58a6ff] focus:ring-[#58a6ff]'
-              : 'border-[#d0d7de] bg-[#ffffff] text-[#24292f] focus:border-[#0969da] focus:ring-[#0969da]'
+              ? 'border-[#30363d] bg-[#0d1117] text-[#e6edf3] focus:border-[#58a6ff] focus:ring-[#58a6ff]/30 hover:border-[#484f58]'
+              : 'border-[#d1d9e0] bg-[#ffffff] text-[#1f2328] focus:border-[#0969da] focus:ring-[#0969da]/20 hover:border-[#a8b3c0]'
           }
           ${className}
         `}
@@ -64,7 +65,7 @@ export const Input: React.FC<InputProps> = ({
       {helperText && !error && (
         <div
           id={`${inputId}-helper`}
-          className={`mt-1 text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}
+          className={`mt-1.5 text-xs ${isDark ? 'text-[#9198a1]' : 'text-[#59636e]'}`}
         >
           {helperText}
         </div>

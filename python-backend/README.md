@@ -18,6 +18,7 @@ Yeh Python backend service LearnMe application ke liye AI operations handle kart
 - **AI SDK**: OpenAI Agents SDK (with Gemini API)
 - **HTTP Client**: httpx
 - **HTML Parsing**: beautifulsoup4
+- **Browser Automation**: Playwright (for SPA documentation extraction)
 
 ## 📦 Project Management with uv
 
@@ -107,11 +108,46 @@ python-backend/
    uv pip install -r requirements.txt
    ```
 
-5. **Environment Variables Setup karein**:
+5. **Playwright Browser Install karein** (OPTIONAL - for SPA documentation extraction):
    ```bash
-   cp .env.example .env
-   # Edit .env file with your configuration
+   # Install Playwright browsers (required for browser-based extraction)
+   uv run playwright install chromium
+   
+   # Or install all browsers
+   uv run playwright install
    ```
+   
+   **Note**: 
+   - Playwright is used for extracting content from Single-Page Application (SPA) documentation sites where navigation links are rendered client-side.
+   - **This step is OPTIONAL** - the system will automatically fall back to HTTP mode if browsers are not installed.
+   - If Playwright installation fails due to network issues (firewall/VPN/proxy), the application will still work with HTTP-only extraction.
+   
+   **Troubleshooting Playwright Installation**:
+   
+   If download fails with network errors:
+   
+   **Option 1: Use a VPN or different network**
+   ```bash
+   # Try connecting to a different network or VPN
+   uv run playwright install chromium
+   ```
+   
+   **Option 2: Manual download with custom mirror**
+   ```bash
+   # Set custom download host if behind firewall
+   set PLAYWRIGHT_DOWNLOAD_HOST=https://playwright.download.azureedge.net
+   uv run playwright install chromium
+   ```
+   
+   **Option 3: Skip Playwright (HTTP mode only)**
+   ```bash
+   # Just skip this step - the app will use HTTP-only extraction
+   # Browser mode will be disabled but HTTP mode works fine for most docs
+   ```
+   
+   **Option 4: Install Chromium separately**
+   - Download Chromium manually from: https://www.chromium.org/getting-involved/download-chromium/
+   - Or use your system's Chrome/Edge browser (Playwright can use these)
 
 6. **Server Start karein**:
    ```bash
@@ -141,18 +177,22 @@ Base URL: `http://localhost:8000/api/ai`
 - **API Requirements**: See `python_api_requirements.md` in project root
 - **Agent Design**: See `app/services/ai/AGENTS_DESIGN.md`
 - **URL Extraction Tool**: See `app/services/ai/URL_EXTRACTION_TOOL.md`
+- **URL Extraction SPA Support**: See `specs/url-extraction-spa/spec.md`
+- **URL Validation**: See `specs/url-validation/spec.md`
 - **uv Documentation**: [https://docs.astral.sh/uv/](https://docs.astral.sh/uv/)
 - **Python Installation with uv**: [https://docs.astral.sh/uv/guides/install-python/](https://docs.astral.sh/uv/guides/install-python/)
 - **OpenAI Agents SDK Tools**: [https://openai.github.io/openai-agents-python/tools/](https://openai.github.io/openai-agents-python/tools/)
 - **Tool Context**: [https://openai.github.io/openai-agents-python/ref/tool_context/](https://openai.github.io/openai-agents-python/ref/tool_context/)
 
-## 🔑 Environment Variables
+## 🔑 Configuration
 
-```env
-GEMINI_API_KEY=your_gemini_api_key_here
-PYTHON_SERVICE_URL=http://localhost:8000
-NODE_ENV=development
-```
+**Note**: All configuration is hardcoded. No environment variables are needed.
+
+- **Port**: 8000 (hardcoded)
+- **Host**: 0.0.0.0 (hardcoded)
+- **CORS**: Configured for localhost origins (hardcoded)
+
+**AI Configuration**: Users must provide their own API key (Gemini or OpenAI) when they first visit the website. The API key is sent in request headers and stored in the user's profile.
 
 ## 🚀 Development
 

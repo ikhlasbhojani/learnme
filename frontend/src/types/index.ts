@@ -1,11 +1,16 @@
 // User Entity
 export interface User {
   id: string
-  email: string
+  email?: string
   createdAt: Date
   updatedAt: Date
   lastLoginAt: Date | null
   themePreference: 'light' | 'dark' | 'blue' | 'green' | null
+  aiProvider?: 'gemini' | 'openai' | null
+  aiApiKey?: string | null
+  aiModel?: string | null
+  aiBaseUrl?: string | null
+  hasApiKey?: boolean
 }
 
 // ContentInput Entity

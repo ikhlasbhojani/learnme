@@ -53,13 +53,13 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-/* Floating animation */
+/* Floating animation - Smooth and subtle */
 @keyframes float {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translateY(0px) scale(1);
   }
   50% {
-    transform: translateY(-20px);
+    transform: translateY(-20px) scale(1.05);
   }
 }
 
@@ -67,14 +67,32 @@ body {
   animation: float 6s ease-in-out infinite;
 }
 
-/* Pulse animation */
+/* Pulse animation - Smooth breathing effect */
 @keyframes pulse {
   0%, 100% {
     opacity: 1;
+    transform: scale(1);
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.6;
+    transform: scale(0.98);
   }
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.4s ease-out;
 }
 
 /* Shimmer effect */
@@ -121,15 +139,29 @@ a {
   text-decoration: none;
 }
 
-/* Focus styles for accessibility - GitHub inspired */
+/* Focus styles for accessibility - Professional, clear focus indicators */
 *:focus-visible {
   outline: 2px solid #0969da;
-  outline-offset: 2px;
-  outline-style: solid;
+  outline-offset: 3px;
+  border-radius: 4px;
+  transition: outline 0.15s ease;
 }
 
 [data-theme="dark"] *:focus-visible {
-  outline-color: #58a6ff;
+  outline: 2px solid #58a6ff;
+  outline-offset: 3px;
+}
+
+/* Button focus states - Remove default outline, add custom ring */
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.3);
+}
+
+[data-theme="dark"] button:focus-visible,
+[data-theme="dark"] a:focus-visible {
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.3);
 }
 
 /* Modern scrollbar styles - GitHub inspired */
@@ -172,35 +204,41 @@ a {
   }
 }
 
-/* Theme Variables - GitHub inspired */
+/* Theme Variables - Professional modern theme */
 :root[data-theme="light"] {
-  --color-primary: #24292f;
-  --color-primary-hover: #0969da;
+  --color-primary: #0969da;
+  --color-primary-hover: #0550ae;
   --color-secondary: #ffffff;
   --color-background: #ffffff;
   --color-surface: #f6f8fa;
-  --color-text: #24292f;
-  --color-text-secondary: #656d76;
-  --color-border: #d0d7de;
+  --color-surface-hover: #eaeef2;
+  --color-text: #1f2328;
+  --color-text-secondary: #59636e;
+  --color-border: #d1d9e0;
+  --color-border-hover: #a8b3c0;
   --color-success: #1a7f37;
   --color-error: #cf222e;
   --color-warning: #9a6700;
   --color-info: #0969da;
+  --color-accent: #8250df;
 }
 
 :root[data-theme="dark"] {
-  --color-primary: #c9d1d9;
-  --color-primary-hover: #58a6ff;
+  --color-primary: #58a6ff;
+  --color-primary-hover: #79c0ff;
   --color-secondary: #0d1117;
   --color-background: #0d1117;
   --color-surface: #161b22;
-  --color-text: #c9d1d9;
-  --color-text-secondary: #8b949e;
+  --color-surface-hover: #1c2128;
+  --color-text: #e6edf3;
+  --color-text-secondary: #9198a1;
   --color-border: #30363d;
+  --color-border-hover: #484f58;
   --color-success: #3fb950;
   --color-error: #f85149;
   --color-warning: #d29922;
   --color-info: #58a6ff;
+  --color-accent: #a371f7;
 }
 
 :root[data-theme="blue"] {
@@ -233,9 +271,19 @@ a {
   --color-info: #3b82f6;
 }
 
-/* Smooth theme transitions */
-* {
-  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+/* Smooth theme transitions - Optimized for performance */
+*,
+*::before,
+*::after {
+  transition: background-color 200ms ease-in-out, 
+              color 200ms ease-in-out, 
+              border-color 200ms ease-in-out,
+              box-shadow 200ms ease-in-out;
+}
+
+/* Prevent transition on page load */
+.no-transition * {
+  transition: none !important;
 }
 
 /* Respect reduced motion preference */

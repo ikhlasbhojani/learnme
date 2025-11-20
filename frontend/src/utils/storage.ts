@@ -90,9 +90,9 @@ export function removeSessionItem(key: string): void {
   }
 }
 
-// Storage keys
+// Storage keys (without prefix - setStorageItem/getStorageItem adds it automatically)
 export const STORAGE_KEYS = {
-  USER: 'user',
+  USER: 'user',  // Will become 'learnme_user' after prefix is added
   QUIZ: (quizId: string) => `quiz_${quizId}`,
   SESSION: 'session',
   DISPLAY_NAME: 'display_name',

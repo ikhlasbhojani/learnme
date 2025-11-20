@@ -1,12 +1,30 @@
-const DEFAULT_API_BASE = 'http://localhost:5000/api'
-
-const apiBaseUrl = import.meta.env.VITE_API_URL ?? DEFAULT_API_BASE
+const apiBaseUrl = 'http://localhost:5000/api'
 
 type RequestMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
 interface RequestOptions extends RequestInit {
   method?: RequestMethod
   parseJson?: boolean
+}
+
+/**
+ * Get user from localStorage to extract AI configuration
+ */
+function getUserFromStorage(): { aiProvider?: string; aiApiKey?: string; aiModel?: string; aiBaseUrl?: string } | null {
+  try {
+    const stored = localStorage.getItem('learnme_user')
+    if (!stored) return null
+    const user = JSON.parse(stored)
+    return {
+      aiProvider: user.aiProvider,
+      aiApiKey: user.aiApiKey,
+      aiModel: user.aiModel,
+      aiBaseUrl: user.aiBaseUrl,
+    }
+  } catch (err) {
+    console.error('Error reading user config from storage:', err)
+    return null
+  }
 }
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -17,10 +35,18 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     baseHeaders.set('Content-Type', 'application/json')
   }
 
-  // Add Authorization header with token from localStorage if available
-  const token = localStorage.getItem('auth_token')
-  if (token) {
-    baseHeaders.set('Authorization', `Bearer ${token}`)
+  // Add AI configuration headers from user's stored config
+  const userConfig = getUserFromStorage()
+  
+  if (userConfig?.aiProvider && userConfig?.aiApiKey) {
+    baseHeaders.set('X-AI-Provider', userConfig.aiProvider)
+    baseHeaders.set('X-AI-API-Key', userConfig.aiApiKey)
+    if (userConfig.aiModel) {
+      baseHeaders.set('X-AI-Model', userConfig.aiModel)
+    }
+    if (userConfig.aiBaseUrl) {
+      baseHeaders.set('X-AI-Base-URL', userConfig.aiBaseUrl)
+    }
   }
 
   if (headers) {

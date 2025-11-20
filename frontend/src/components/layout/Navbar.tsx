@@ -1,37 +1,25 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { BookOpen, Plus, FileText, Moon, Sun, X, Menu, ChevronDown } from 'lucide-react'
-import { theme, getThemeColors } from '../../styles/theme'
+import { motion, AnimatePresence } from 'framer-motion'
+import { BookOpen, Plus, FileText, Moon, Sun, X, Menu, ChevronDown, Settings } from 'lucide-react'
 import { useTheme } from '../../contexts/ThemeContext'
 import { getStorageItem, STORAGE_KEYS } from '../../utils/storage'
-
-const getNavItems = (colors: ReturnType<typeof getThemeColors>) => [
-  { path: '/home', label: 'Home', icon: <BookOpen size={16} color={colors.text} /> },
-  { path: '/quiz-config', label: 'New Quiz', icon: <Plus size={16} color={colors.text} /> },
-  { path: '/quiz-history', label: 'Assessment History', icon: <FileText size={16} color={colors.text} /> },
-]
 
 export const Navbar: React.FC = () => {
   const location = useLocation()
   const { isDark, toggleTheme } = useTheme()
-  const colors = getThemeColors(isDark)
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
-  const [isUserDropdownOpen, setIsUserDropdownOpen] = React.useState(false)
-  const [isMobile, setIsMobile] = React.useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const displayName = getStorageItem<string>(STORAGE_KEYS.DISPLAY_NAME) || 'Guest'
 
-  const isActive = (path: string) => {
-    return location.pathname === path
-  }
+  const isActive = (path: string) => location.pathname === path
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768
       setIsMobile(mobile)
-      if (!mobile) {
-        setIsMobileMenuOpen(false)
-      }
+      if (!mobile) setIsMobileMenuOpen(false)
     }
     checkMobile()
     window.addEventListener('resize', checkMobile)
@@ -39,12 +27,12 @@ export const Navbar: React.FC = () => {
   }, [])
 
   // Close mobile menu when route changes
-  React.useEffect(() => {
+  useEffect(() => {
     setIsMobileMenuOpen(false)
   }, [location.pathname])
 
   // Close dropdown when clicking outside
-  React.useEffect(() => {
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (isUserDropdownOpen) {
         const target = event.target as HTMLElement
@@ -53,352 +41,207 @@ export const Navbar: React.FC = () => {
         }
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isUserDropdownOpen])
+
+  const navItems = [
+    { path: '/home', label: 'Home', icon: BookOpen },
+    { path: '/quiz-config', label: 'New Quiz', icon: Plus },
+    { path: '/quiz-history', label: 'History', icon: FileText },
+  ]
 
   return (
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.3 }}
-      style={{
-        position: 'sticky',
-        top: 0,
-        left: 0,
-        right: 0,
-        background: colors.cardBg,
-        borderBottom: `1px solid ${colors.border}`,
-        boxShadow: theme.shadows.sm,
-        zIndex: 1000,
-        padding: `${theme.spacing.md} ${theme.spacing.xl} ${theme.spacing.sm} ${theme.spacing.xl}`,
-      }}
+      className={`sticky top-0 z-50 w-full border-b backdrop-blur-md transition-colors duration-300
+        ${isDark 
+          ? 'bg-[#0d1117]/80 border-[#30363d]' 
+          : 'bg-white/80 border-[#d1d9e0]'
+        }`}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: '1400px',
-          margin: '0 auto',
-          gap: theme.spacing.lg,
-        }}
-      >
-        {/* Logo */}
-        <Link
-          to="/home"
-          style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: colors.text,
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            transition: `all ${theme.transitions.normal}`,
-            padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-            borderRadius: theme.borderRadius.md,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = colors.gray[50]
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'transparent'
-          }}
-        >
-          <BookOpen size={20} color={colors.text} />
-          <span>LearnMe</span>
-        </Link>
-
-        {/* Mobile Menu Button */}
-        {isMobile && (
-          <button
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '40px',
-              height: '40px',
-              borderRadius: theme.borderRadius.md,
-              background: colors.gray[100],
-              border: `1px solid ${colors.border}`,
-              cursor: 'pointer',
-              color: colors.text,
-              fontSize: '20px',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = colors.gray[200]
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = colors.gray[100]
-            }}
-            aria-label="Toggle menu"
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Logo */}
+          <Link
+            to="/home"
+            className={`flex items-center gap-2 text-xl font-bold transition-colors duration-200
+              ${isDark ? 'text-[#e6edf3] hover:text-[#58a6ff]' : 'text-[#1f2328] hover:text-[#0969da]'}`}
           >
-            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        )}
+            <div className={`p-1.5 rounded-lg ${isDark ? 'bg-[#1f6feb]/10' : 'bg-[#0969da]/10'}`}>
+              <BookOpen size={20} className={isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'} />
+            </div>
+            <span>LearnMe</span>
+          </Link>
 
-        {/* Navigation Links - Desktop */}
-        {!isMobile && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.md,
-            }}
-          >
-              {getNavItems(colors).map((item) => {
+          {/* Desktop Navigation */}
+          {!isMobile && (
+            <div className="flex items-center gap-1">
+              {navItems.map((item) => {
                 const active = isActive(item.path)
+                const Icon = item.icon
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing.xs,
-                      padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-                      borderRadius: theme.borderRadius.md,
-                      textDecoration: 'none',
-                      background: active ? colors.gray[100] : 'transparent',
-                      color: active ? colors.primary : colors.text,
-                      fontWeight: active
-                        ? theme.typography.fontWeight.semibold
-                        : theme.typography.fontWeight.medium,
-                      transition: `all ${theme.transitions.normal}`,
-                      position: 'relative',
-                      fontSize: theme.typography.fontSize.sm,
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.background = colors.gray[50]
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) {
-                        e.currentTarget.style.background = 'transparent'
-                      }
-                    }}
+                    className={`relative px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-2
+                      ${active 
+                        ? (isDark ? 'text-[#58a6ff]' : 'text-[#0969da]') 
+                        : (isDark ? 'text-[#e6edf3] hover:bg-[#161b22]' : 'text-[#1f2328] hover:bg-[#f6f8fa]')
+                      }`}
                   >
-                    <span style={{ opacity: active ? 1 : 0.7, display: 'flex', alignItems: 'center' }}>
-                      {item.icon}
-                    </span>
+                    <Icon size={16} className={active ? 'opacity-100' : 'opacity-70'} />
                     <span>{item.label}</span>
                     {active && (
                       <motion.div
                         layoutId="active-nav-indicator"
-                        style={{
-                          position: 'absolute',
-                          bottom: `-${theme.spacing.sm}`,
-                          left: '8px',
-                          right: '8px',
-                          height: '2px',
-                          background: colors.primary,
-                          borderRadius: '2px 2px 0 0',
-                        }}
+                        className={`absolute bottom-0 left-2 right-2 h-0.5 rounded-t-full
+                          ${isDark ? 'bg-[#58a6ff]' : 'bg-[#0969da]'}`}
                       />
                     )}
                   </Link>
                 )
               })}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Right Side: Display name + Theme toggle */}
-        {
-          <div
-            data-user-dropdown
-            style={{
-              position: 'relative',
-            }}
-          >
-            <button
-              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
-              className={`
-                flex items-center gap-1 px-2 py-1 rounded-md cursor-pointer transition-all duration-300
-                ${isDark
-                  ? 'bg-[#1c2128] border border-[#30363d] hover:bg-[#21262d]'
-                  : 'bg-[#f0f3f6] border border-[#d0d7de] hover:bg-[#e7edf3]'
-                }
-              `}
-            >
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  background: colors.primary,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: theme.typography.fontWeight.bold,
-                  color: colors.secondary,
-                }}
+          {/* Right Section */}
+          <div className="flex items-center gap-4">
+            {/* Mobile Menu Button */}
+            {isMobile && (
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className={`p-2 rounded-md transition-colors
+                  ${isDark 
+                    ? 'text-[#e6edf3] hover:bg-[#161b22]' 
+                    : 'text-[#1f2328] hover:bg-[#f6f8fa]'}`}
               >
-                {displayName[0]?.toUpperCase()}
-              </div>
-              <span
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: colors.text,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  maxWidth: '150px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {displayName}
-              </span>
-              <ChevronDown size={12} color={colors.gray[500]} />
-            </button>
-
-            {/* Dropdown Menu */}
-            {isUserDropdownOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                style={{
-                  position: 'absolute',
-                  top: 'calc(100% + 8px)',
-                  right: 0,
-                  minWidth: '200px',
-                  background: colors.cardBg,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: theme.borderRadius.lg,
-                  boxShadow: theme.shadows.lg,
-                  padding: theme.spacing.xs,
-                  zIndex: 1001,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: theme.spacing.xs,
-                }}
-              >
-                {/* User Info */}
-                <div
-                  style={{
-                    padding: theme.spacing.md,
-                    borderBottom: `1px solid ${colors.border}`,
-                    marginBottom: theme.spacing.xs,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing.sm,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '50%',
-                        background: colors.primary,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '16px',
-                        fontWeight: theme.typography.fontWeight.bold,
-                        color: colors.secondary,
-                      }}
-                    >
-                      {displayName[0]?.toUpperCase()}
-                    </div>
-                    <div
-                      style={{
-                        flex: 1,
-                        minWidth: 0,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: theme.typography.fontSize.sm,
-                          fontWeight: theme.typography.fontWeight.semibold,
-                          color: colors.text,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {displayName}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Theme Toggle */}
-                <button
-                  onClick={async () => {
-                    try {
-                      await toggleTheme()
-                      setIsUserDropdownOpen(false)
-                    } catch (err) {
-                      console.error('Failed to toggle theme:', err)
-                    }
-                  }}
-                  className={`
-                    flex items-center gap-2 p-4 rounded-md w-full text-left text-sm font-medium cursor-pointer transition-all duration-300
-                    bg-transparent border-none text-[var(--color-text)]
-                    ${isDark ? 'hover:bg-[#30363d]' : 'hover:bg-[#f6f8fa]'}
-                  `}
-                >
-                  {isDark ? <Sun size={18} /> : <Moon size={18} />}
-                  <span>{isDark ? 'Light Mode' : 'Dark Mode'}</span>
-                </button>
-              </motion.div>
+                {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
             )}
-          </div>
-        }
 
-        {/* Removed Login/Signup buttons for open-source local mode */}
+            {/* User Dropdown */}
+            <div className="relative" data-user-dropdown>
+              <button
+                onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                className={`flex items-center gap-2 pl-1 pr-2 py-1 rounded-full border transition-all duration-200
+                  ${isDark 
+                    ? 'bg-[#161b22] border-[#30363d] hover:border-[#8b949e] text-[#e6edf3]' 
+                    : 'bg-white border-[#d1d9e0] hover:border-[#59636e] text-[#1f2328]'}`}
+              >
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white
+                  ${isDark ? 'bg-[#238636]' : 'bg-[#1a7f37]'}`}>
+                  {displayName[0]?.toUpperCase()}
+                </div>
+                <span className="text-sm font-medium max-w-[100px] truncate hidden sm:block">
+                  {displayName}
+                </span>
+                <ChevronDown size={14} className={`opacity-50 transition-transform duration-200 ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              <AnimatePresence>
+                {isUserDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.1 }}
+                    className={`absolute right-0 mt-2 w-56 rounded-xl border shadow-xl overflow-hidden
+                      ${isDark 
+                        ? 'bg-[#161b22] border-[#30363d] shadow-black/20' 
+                        : 'bg-white border-[#d1d9e0] shadow-gray-200'}`}
+                  >
+                    {/* User Header */}
+                    <div className={`px-4 py-3 border-b ${isDark ? 'border-[#30363d]' : 'border-[#d1d9e0]'}`}>
+                      <p className={`text-sm font-medium ${isDark ? 'text-[#e6edf3]' : 'text-[#1f2328]'}`}>
+                        Signed in as
+                      </p>
+                      <p className={`text-sm font-bold truncate ${isDark ? 'text-[#e6edf3]' : 'text-[#1f2328]'}`}>
+                        {displayName}
+                      </p>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-1">
+                      <Link
+                        to="/settings"
+                        onClick={() => setIsUserDropdownOpen(false)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors
+                          ${isDark 
+                            ? 'text-[#e6edf3] hover:bg-[#21262d]' 
+                            : 'text-[#1f2328] hover:bg-[#f6f8fa]'}`}
+                      >
+                        <Settings size={16} />
+                        Settings
+                      </Link>
+                      
+                      <div className={`h-px my-1 mx-2 ${isDark ? 'bg-[#30363d]' : 'bg-[#d1d9e0]'}`} />
+                      
+                      <button
+                        onClick={() => {
+                          toggleTheme()
+                          // Keep open to see change
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors
+                          ${isDark 
+                            ? 'text-[#e6edf3] hover:bg-[#21262d]' 
+                            : 'text-[#1f2328] hover:bg-[#f6f8fa]'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {isDark ? <Moon size={16} /> : <Sun size={16} />}
+                          <span>Theme</span>
+                        </div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                          ${isDark 
+                            ? 'bg-[#30363d] text-[#8b949e]' 
+                            : 'bg-[#eaeef2] text-[#656d76]'}`}>
+                          {isDark ? 'Dark' : 'Light'}
+                        </span>
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Mobile Menu */}
-      {isMobile && isMobileMenuOpen && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing.sm,
-            paddingTop: theme.spacing.md,
-            borderTop: `1px solid ${colors.border}`,
-          }}
-        >
-              {getNavItems(colors).map((item) => {
+      <AnimatePresence>
+        {isMobile && isMobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className={`border-t ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-[#d1d9e0] bg-white'}`}
+          >
+            <div className="p-4 space-y-2">
+              {navItems.map((item) => {
                 const active = isActive(item.path)
+                const Icon = item.icon
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: theme.spacing.sm,
-                      padding: theme.spacing.md,
-                      borderRadius: theme.borderRadius.lg,
-                      textDecoration: 'none',
-                      background: active ? colors.gray[100] : 'transparent',
-                      color: colors.text,
-                      fontWeight: active
-                        ? theme.typography.fontWeight.semibold
-                        : theme.typography.fontWeight.medium,
-                    }}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
+                      ${active
+                        ? (isDark ? 'bg-[#1f6feb]/15 text-[#58a6ff]' : 'bg-[#0969da]/10 text-[#0969da]')
+                        : (isDark ? 'text-[#e6edf3] hover:bg-[#161b22]' : 'text-[#1f2328] hover:bg-[#f6f8fa]')
+                      }`}
                   >
-                    <span style={{ display: 'flex', alignItems: 'center' }}>{item.icon}</span>
-                    <span>{item.label}</span>
+                    <Icon size={18} />
+                    {item.label}
                   </Link>
                 )
               })}
-        </motion.div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   )
 }
