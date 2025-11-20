@@ -50,10 +50,10 @@ class BrowserService:
                 # Run synchronous playwright in thread pool to avoid Windows subprocess issues
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(self._executor, self._init_browser_sync)
-                print("✅ Browser initialized successfully (sync mode)")
+                print("Browser initialized successfully (sync mode)")
             except Exception as e:
-                print(f"⚠️  Failed to initialize browser: {e}")
-                print("⚠️  Browser mode will not be available. Falling back to HTTP mode.")
+                print(f"WARNING: Failed to initialize browser: {e}")
+                print("WARNING: Browser mode will not be available. Falling back to HTTP mode.")
                 raise
     
     def _init_browser_sync(self):
@@ -139,7 +139,7 @@ class BrowserService:
             html_lower = html.lower()
             for indicator in spa_indicators:
                 if re.search(indicator, html_lower):
-                    print(f"🔍 SPA indicator found: {indicator}")
+                    print(f"SPA indicator found: {indicator}")
                     return True
             
             # Check if main URL returns 500 error (common for SPA internal routes)
@@ -147,7 +147,7 @@ class BrowserService:
                 async with httpx.AsyncClient(timeout=10) as client:
                     response = await client.get(url, follow_redirects=True)
                     if response.status_code == 500:
-                        print(f"🔍 Main URL returns 500 - likely SPA with client-side routing")
+                        print(f"Main URL returns 500 - likely SPA with client-side routing")
                         return True
             except Exception:
                 pass
@@ -166,7 +166,7 @@ class BrowserService:
                             try:
                                 response = await client.head(link, follow_redirects=True)
                                 if response.status_code >= 400:
-                                    print(f"🔍 Navigation link returns {response.status_code}: {link}")
+                                    print(f"Navigation link returns {response.status_code}: {link}")
                                     return True  # Links don't work directly = likely SPA
                             except Exception:
                                 continue
@@ -174,7 +174,7 @@ class BrowserService:
             return False
             
         except Exception as e:
-            print(f"⚠️  SPA detection error: {e}")
+            print(f"WARNING: SPA detection error: {e}")
             return False  # Default to HTTP mode on error
     
     async def extract_urls_with_browser(
@@ -213,7 +213,7 @@ class BrowserService:
         page = self._browser.new_page()
         
         try:
-            print(f"🌐 Loading page in browser: {main_url}")
+            print(f"Loading page in browser: {main_url}")
             
             # Navigate to main URL (SYNC API)
             page.goto(
@@ -226,7 +226,7 @@ class BrowserService:
             page.wait_for_timeout((context.wait_for_navigation if hasattr(context, 'wait_for_navigation') else 3) * 1000)
             
             # Extract all navigation links from the rendered page
-            print("📑 Extracting navigation links from rendered page...")
+            print("Extracting navigation links from rendered page...")
             
             nav_links = page.evaluate("""
                 () => {
@@ -328,14 +328,14 @@ class BrowserService:
             visited: Set[str] = set()
             total_links_found = len(nav_links)
             
-            print(f"✅ Found {total_links_found} navigation links")
+            print(f"Found {total_links_found} navigation links")
             
             # Limit URLs to process
             max_urls = context.max_urls_per_level if hasattr(context, 'max_urls_per_level') else 200
             nav_links_to_process = nav_links[:max_urls]
             
             if len(nav_links) > max_urls:
-                print(f"⚠️  Limited to first {max_urls} URLs (found {len(nav_links)} total)")
+                print(f"WARNING: Limited to first {max_urls} URLs (found {len(nav_links)} total)")
             
             # Extract links without validation (they're from rendered page, so they exist)
             # Browser validation is too slow (2+ minutes for 72 URLs)
@@ -351,11 +351,11 @@ class BrowserService:
                 all_urls_with_depth.append((href, title, 1))
                 
                 if idx % 10 == 0:  # Progress every 10 links
-                    print(f"📥 Extracted {idx}/{len(nav_links_to_process)} links...")
+                    print(f"Extracted {idx}/{len(nav_links_to_process)} links...")
             
-            print(f"\n📊 Browser extraction complete:")
-            print(f"  ✅ Valid URLs: {len(all_urls_with_depth)}")
-            print(f"  ❌ Skipped URLs: {len(skipped_links)}")
+            print(f"\nBrowser extraction complete:")
+            print(f"  Valid URLs: {len(all_urls_with_depth)}")
+            print(f"  Skipped URLs: {len(skipped_links)}")
             
             return all_urls_with_depth, skipped_links, unverified_links, total_links_found
             

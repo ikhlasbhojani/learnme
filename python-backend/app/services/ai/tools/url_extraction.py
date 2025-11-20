@@ -149,12 +149,12 @@ async def extract_urls_from_documentation(
                 browser_available = await browser_service.is_browser_available()
                 
                 if not browser_available:
-                    print("⚠️  Browser not available - Playwright browsers not installed")
-                    print("💡 Run: uv run playwright install chromium")
-                    print("🔗 Falling back to HTTP mode")
+                    print("WARNING: Browser not available - Playwright browsers not installed")
+                    print("TIP: Run: uv run playwright install chromium")
+                    print("Falling back to HTTP mode")
             except Exception as e:
-                print(f"⚠️  Browser service error: {e}")
-                print("🔗 Falling back to HTTP mode")
+                print(f"WARNING: Browser service error: {e}")
+                print("Falling back to HTTP mode")
                 browser_available = False
         
         # Determine final extraction mode
@@ -162,26 +162,26 @@ async def extract_urls_from_documentation(
             if browser_available:
                 extraction_mode = "browser"
             else:
-                print("❌ Browser mode requested but not available. Using HTTP mode instead.")
+                print("ERROR: Browser mode requested but not available. Using HTTP mode instead.")
                 extraction_mode = "http"
         elif requested_mode == "auto":
             if browser_available:
                 # Auto-detect SPA
-                print("🔍 Auto-detecting site architecture...")
+                    print("Auto-detecting site architecture...")
                 try:
                     from app.services.browser import get_browser_service
                     browser_service = await get_browser_service()
                     spa_detected = await browser_service.detect_spa_architecture(url)
                     
                     if spa_detected:
-                        print("✅ SPA detected - using browser mode")
+                        print("SPA detected - using browser mode")
                         extraction_mode = "browser"
                     else:
-                        print("✅ Traditional site detected - using HTTP mode")
+                        print("Traditional site detected - using HTTP mode")
                         extraction_mode = "http"
                 except Exception as e:
-                    print(f"⚠️  SPA detection failed: {e}")
-                    print("🔗 Falling back to HTTP mode")
+                    print(f"WARNING: SPA detection failed: {e}")
+                    print("Falling back to HTTP mode")
                     extraction_mode = "http"
             else:
                 extraction_mode = "http"
@@ -190,7 +190,7 @@ async def extract_urls_from_documentation(
         
         # Extract URLs using appropriate mode
         if extraction_mode == "browser" and browser_available:
-            print("🌐 Using browser-based extraction...")
+            print("Using browser-based extraction...")
             try:
                 from app.services.browser import get_browser_service
                 browser_service = await get_browser_service()
@@ -212,12 +212,12 @@ async def extract_urls_from_documentation(
                     )
                 }
             except Exception as e:
-                print(f"❌ Browser extraction failed: {e}")
-                print("🔗 Falling back to HTTP mode")
+                print(f"ERROR: Browser extraction failed: {e}")
+                print("Falling back to HTTP mode")
                 extraction_mode = "http"
                 extraction_payload = await _extract_urls_recursively_bfs(url, context_data)
         else:
-            print("🔗 Using HTTP-based extraction...")
+            print("Using HTTP-based extraction...")
             # Extract URLs recursively using BFS
             extraction_payload = await _extract_urls_recursively_bfs(url, context_data)
 
@@ -289,8 +289,8 @@ async def _extract_urls_recursively_bfs(
     processed_count = 0
     error_count = 0
 
-    print(f"🔍 Starting BFS URL extraction from: {main_url}")
-    print(f"⚙️  Max Depth: {max_depth}, Max URLs per level: {max_urls_per_level}")
+    print(f"Starting BFS URL extraction from: {main_url}")
+    print(f"Max Depth: {max_depth}, Max URLs per level: {max_urls_per_level}")
 
     while queue:
         current_url, current_depth = queue.popleft()
@@ -299,16 +299,16 @@ async def _extract_urls_recursively_bfs(
         if current_depth > max_depth:
             continue
 
-        print(f"\n📍 Level {current_depth} | Page {processed_count}/{processed_count + len(queue)}: {current_url}")
+        print(f"\nLevel {current_depth} | Page {processed_count}/{processed_count + len(queue)}: {current_url}")
 
         try:
             urls_with_titles = await _extract_urls_from_html(current_url, context)
             level_counts[current_depth] = level_counts.get(current_depth, 0) + len(urls_with_titles)
-            print(f"✅ Found {len(urls_with_titles)} URLs at Level {current_depth} from this page")
+            print(f"Found {len(urls_with_titles)} URLs at Level {current_depth} from this page")
 
             urls_to_process = urls_with_titles[:max_urls_per_level]
             if len(urls_with_titles) > max_urls_per_level:
-                print(f"⚠️  Limited to first {max_urls_per_level} URLs (found {len(urls_with_titles)} total)")
+                print(f"WARNING: Limited to first {max_urls_per_level} URLs (found {len(urls_with_titles)} total)")
 
             new_urls_count = 0
 
@@ -344,21 +344,21 @@ async def _extract_urls_recursively_bfs(
                         unverified_links.append(SkippedLink(url=found_url, reason=reason, statusCode=status_code))
 
             if new_urls_count > 0:
-                print(f"➕ Added {new_urls_count} new URLs to crawl queue")
+                print(f"Added {new_urls_count} new URLs to crawl queue")
             else:
-                print(f"ℹ️  No new URLs (all were duplicates or failed validation)")
+                print(f"INFO: No new URLs (all were duplicates or failed validation)")
 
         except Exception as e:
             error_count += 1
-            print(f"❌ Error processing {current_url}: {str(e)}")
+            print(f"ERROR: Error processing {current_url}: {str(e)}")
             continue
 
-    print(f"\n✨ BFS Complete!")
-    print(f"📊 Total pages processed: {processed_count}")
-    print(f"📊 Total verified URLs: {len(verified_records)}")
-    print(f"📊 Errors encountered: {error_count}")
-    print(f"📊 URLs per level: {level_counts}")
-    print(f"📊 Total unique pages visited: {len(visited)}")
+    print(f"\nBFS Complete!")
+    print(f"Total pages processed: {processed_count}")
+    print(f"Total verified URLs: {len(verified_records)}")
+    print(f"Errors encountered: {error_count}")
+    print(f"URLs per level: {level_counts}")
+    print(f"Total unique pages visited: {len(visited)}")
 
     return {
         "records": verified_records,

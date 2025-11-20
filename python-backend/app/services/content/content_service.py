@@ -88,7 +88,7 @@ class ContentService:
                 
                 # BROWSER MODE DISABLED: Not working reliably on Windows
                 # Always use HTTP-based extraction (fast and reliable)
-                print("🔗 Using HTTP-based extraction (browser mode disabled)...")
+                print("Using HTTP-based extraction (browser mode disabled)...")
                 
                 # HTTP-based extraction
                 extraction_payload = await _extract_urls_recursively_bfs(url, context)
