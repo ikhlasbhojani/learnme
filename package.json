@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AI-Powered Learning Platform - Transform any web content into personalized quizzes",
   "main": "index.js",
+  "bin": {
+    "learnme": "./bin/learnme.js"
+  },
   "scripts": {
     "setup": "node scripts/setup.js",
     "start": "node scripts/start-sequential.js",

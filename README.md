@@ -74,10 +74,31 @@ Before you begin, ensure you have:
 
 ### Quick Installation (Recommended)
 
+**Option 1: PowerShell Installation (Windows)**
+
+Run this single command in PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File install-learnme.ps1
+```
+
+Or if you've already cloned the repo:
+
+```powershell
+.\install-learnme.ps1
+```
+
+This will:
+- Clone the repository
+- Install all dependencies
+- Create a global `learnme` command
+
+**Option 2: Manual Installation**
+
 **One-command setup** - Clone, install everything, and you're ready to go:
 
 ```bash
-git clone https://github.com/ikhlasbhojani/learnme.git && cd learnme && npm run setup
+git clone https://github.com/ikhlasbhojani/learnme.git && cd learnme && npm run setup && npm link
 ```
 
 This single command will:
@@ -88,12 +109,25 @@ This single command will:
 - ✅ Install all Node.js backend dependencies
 - ✅ Install all Python dependencies
 - ✅ Install Playwright browsers
+- ✅ Create global `learnme` command
 
 **Then start all services:**
 
+Using the global command (after `npm link`):
+```bash
+learnme start
+```
+
+Or using npm:
 ```bash
 npm start
 ```
+
+**Other useful `learnme` commands:**
+- `learnme status` - Check if services are running
+- `learnme stop` - Stop all services
+- `learnme install` - Re-run setup
+- `learnme help` - Show help
 
 **Access the Application:**
 - 🎨 Frontend: http://localhost:5173
