@@ -2,7 +2,18 @@
 
 const { execSync } = require('child_process');
 const os = require('os');
-const chalk = require('chalk');
+let chalk;
+try {
+  chalk = require('chalk');
+} catch (e) {
+  // Fallback if chalk is not installed yet
+  chalk = {
+    yellow: (s) => s,
+    cyan: (s) => s,
+    green: (s) => s,
+    red: (s) => s
+  };
+}
 
 /**
  * Check if uv is installed

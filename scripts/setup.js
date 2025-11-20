@@ -18,7 +18,17 @@ try {
     magenta: { bold: (s) => s }
   };
 }
-const { isUvInstalled, installUv } = require('./install-uv');
+
+// Lazy require - will be loaded after root dependencies are installed
+let isUvInstalled, installUv;
+function loadInstallUv() {
+  if (!isUvInstalled || !installUv) {
+    const uvModule = require('./install-uv');
+    isUvInstalled = uvModule.isUvInstalled;
+    installUv = uvModule.installUv;
+  }
+  return { isUvInstalled, installUv };
+}
 
 /**
  * Display welcome banner
@@ -284,8 +294,11 @@ async function main() {
     // Step 3: Install uv
     console.log(chalk.magenta.bold(`\n[${++step}/8] 📦 Setting up uv (Python Package Manager)...\n`));
     
-    if (!isUvInstalled()) {
-      const uvInstalled = await installUv();
+    // Load install-uv module now that root dependencies are installed
+    const { isUvInstalled: checkUv, installUv: installUvFn } = loadInstallUv();
+    
+    if (!checkUv()) {
+      const uvInstalled = await installUvFn();
       if (!uvInstalled) {
         console.error(chalk.red('\n❌ uv installation failed. Please install manually and run setup again.\n'));
         process.exit(1);
