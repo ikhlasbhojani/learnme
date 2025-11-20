@@ -20,18 +20,18 @@ const command = args[0] || 'help';
  */
 function showBanner() {
   console.log('');
-  console.log(chalk.cyan.bold('  ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════╗'));
-  console.log(chalk.cyan.bold('  ║                                                                                                              ║'));
+  console.log(chalk.cyan.bold('  ╔═══════════════════════════════════════════════════════════════╗'));
+  console.log(chalk.cyan.bold('  ║                                                               ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ██╗     ███████╗ █████╗ ██████╗ ███╗   ██╗███╗   ███╗███████╗') + chalk.cyan.bold('  ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ██║     ██╔════╝██╔══██╗██╔══██╗████╗  ██║████╗ ████║██╔════╝') + chalk.cyan.bold('  ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ██║     █████╗  ███████║██████╔╝██╔██╗ ██║██╔████╔██║█████╗  ') + chalk.cyan.bold('  ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ██║     ██╔══╝  ██╔══██║██╔══██╗██║╚██╗██║██║╚██╔╝██║██╔══╝  ') + chalk.cyan.bold('  ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ███████╗███████╗██║  ██║██║  ██║██║ ╚████║██║ ╚═╝ ██║███████╗') + chalk.cyan.bold('  ║'));
   console.log(chalk.cyan.bold('  ║') + chalk.white.bold('  ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝     ╚═╝╚══════╝') + chalk.cyan.bold('  ║'));
-  console.log(chalk.cyan.bold('  ║                                                                                                    fff       ║'));
-  console.log(chalk.cyan.bold('  ║') + chalk.white('              AI-Powered Learning Platform') + chalk.cyan.bold('                            ║'));
-  console.log(chalk.cyan.bold('  ║                                                                                                    fffff     ║'));
-  console.log(chalk.cyan.bold('  ╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════╝'));
+  console.log(chalk.cyan.bold('  ║                                                               ║'));
+  console.log(chalk.cyan.bold('  ║') + chalk.white('              AI-Powered Learning Platform') + chalk.cyan.bold('                  ║'));
+  console.log(chalk.cyan.bold('  ║                                                               ║'));
+  console.log(chalk.cyan.bold('  ╚═══════════════════════════════════════════════════════════════╝'));
   console.log('');
 }
 
