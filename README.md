@@ -76,22 +76,24 @@ Before you begin, ensure you have:
 
 **Option 1: PowerShell Installation (Windows)**
 
-Run this single command in PowerShell:
+Run this single command in PowerShell (downloads and runs the installation script):
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File install-learnme.ps1
-```
-
-Or if you've already cloned the repo:
-
-```powershell
-.\install-learnme.ps1
+powershell -ExecutionPolicy Bypass -Command "Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ikhlasbhojani/learnme/main/install-learnme.ps1' -OutFile 'install-learnme.ps1'; .\install-learnme.ps1"
 ```
 
 This will:
+- Download the installation script
 - Clone the repository
 - Install all dependencies
 - Create a global `learnme` command
+
+**Note:** If you've already cloned the repo, you can run the script directly:
+
+```powershell
+cd learnme
+.\install-learnme.ps1
+```
 
 **Option 2: Manual Installation**
 
