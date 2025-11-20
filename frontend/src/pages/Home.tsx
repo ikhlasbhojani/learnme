@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, useMotionValue, useSpring } from 'framer-motion'
-import { BookOpen, Sparkles, ArrowRight, FileText, Link as LinkIcon, Pencil, Zap, TrendingUp, Users } from 'lucide-react'
+import { BookOpen, Sparkles, ArrowRight, FileText, Link as LinkIcon, Pencil, Zap, TrendingUp, Users, Github, Linkedin } from 'lucide-react'
 import { Button } from '../components/common/Button'
 import { FileUpload } from '../components/common/FileUpload'
 import { URLInput } from '../components/common/URLInput'
@@ -225,11 +225,11 @@ export default function Home() {
               <Button
                 variant="primary"
                 size="lg"
-                onClick={handleManualInput}
-                className="flex items-center gap-2 group shadow-lg shadow-blue-500/20"
+                disabled={true}
+                className="flex items-center gap-2 group shadow-lg shadow-blue-500/20 opacity-60 cursor-not-allowed"
               >
-                <Sparkles size={20} className="shrink-0 group-hover:rotate-180 transition-transform duration-500" />
-                Start Learning
+                <Sparkles size={20} className="shrink-0" />
+                Coming Soon
               </Button>
               <Button
                 variant="outline"
@@ -282,21 +282,12 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
               className={`relative group p-8 rounded-2xl border transition-all duration-300
                 ${isDark 
-                  ? 'bg-[#0d1117] border-[#30363d] hover:border-[#58a6ff]/50 hover:shadow-lg hover:shadow-[#58a6ff]/10' 
-                  : 'bg-white border-[#d0d7de] hover:border-[#0969da]/50 hover:shadow-xl hover:shadow-blue-500/5'}`}
-              onClick={handleManualInput}
+                  ? 'bg-[#0d1117] border-[#30363d] opacity-75' 
+                  : 'bg-white border-[#d0d7de] opacity-75'}`}
             >
-              {/* Hover Gradient Overlay */}
-              <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none
-                ${isDark 
-                  ? 'bg-gradient-to-br from-[#58a6ff]/5 via-transparent to-transparent' 
-                  : 'bg-gradient-to-br from-[#0969da]/5 via-transparent to-transparent'}`} 
-              />
-
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl mb-6 transition-transform duration-300 group-hover:scale-110
+              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl mb-6
                 ${isDark ? 'bg-[#1f6feb]/10' : 'bg-[#0969da]/10'}`}>
                 <Pencil size={24} className={isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'} />
               </div>
@@ -309,13 +300,10 @@ export default function Home() {
               <Button
                 variant="primary"
                 size="md"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  handleManualInput()
-                }}
-                className="w-full shadow-md opacity-90 group-hover:opacity-100 transition-opacity"
+                disabled={true}
+                className="w-full shadow-md opacity-60 cursor-not-allowed"
               >
-                Start Learning
+                Coming Soon
               </Button>
             </motion.div>
 
@@ -325,20 +313,12 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.2 }}
-              whileHover={{ y: -5, transition: { duration: 0.2 } }}
               className={`relative group p-8 rounded-2xl border transition-all duration-300
                 ${isDark 
-                  ? 'bg-[#0d1117] border-[#30363d] hover:border-[#58a6ff]/50 hover:shadow-lg hover:shadow-[#58a6ff]/10' 
-                  : 'bg-white border-[#d0d7de] hover:border-[#0969da]/50 hover:shadow-xl hover:shadow-blue-500/5'}`}
+                  ? 'bg-[#0d1117] border-[#30363d] opacity-75' 
+                  : 'bg-white border-[#d0d7de] opacity-75'}`}
             >
-               {/* Hover Gradient Overlay */}
-               <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none
-                ${isDark 
-                  ? 'bg-gradient-to-br from-[#58a6ff]/5 via-transparent to-transparent' 
-                  : 'bg-gradient-to-br from-[#0969da]/5 via-transparent to-transparent'}`} 
-              />
-
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl mb-6 transition-transform duration-300 group-hover:scale-110
+              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl mb-6
                 ${isDark ? 'bg-[#1f6feb]/10' : 'bg-[#0969da]/10'}`}>
                 <FileText size={24} className={isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'} />
               </div>
@@ -351,10 +331,10 @@ export default function Home() {
               <Button
                 variant="secondary"
                 size="md"
-                onClick={() => setShowFileModal(true)}
-                className="w-full shadow-sm border"
+                disabled={true}
+                className="w-full shadow-sm border opacity-60 cursor-not-allowed"
               >
-                Upload File
+                Coming Soon
               </Button>
             </motion.div>
 
@@ -494,6 +474,104 @@ export default function Home() {
       >
         <URLInput onURLSubmit={handleURLSubmit} />
       </Modal>
+
+      {/* Footer */}
+      <footer className={`${isDark ? 'bg-[#0d1117] border-t border-[#30363d]' : 'bg-[#f6f8fa] border-t border-[#d0d7de]'} py-8`}>
+        <div className="max-w-[1280px] mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className={`text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+              <p className="font-medium mb-2">LearnMe - AI-Powered Learning Platform</p>
+              <div className="space-y-2">
+                <p className="text-xs">
+                  Created by{' '}
+                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+                    Ikhlas Bhojani
+                  </span>
+                  {', '}
+                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+                    Talal Ahmed
+                  </span>
+                  {' '}and{' '}
+                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+                    Muhammad Qasim
+                  </span>
+                </p>
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* Ikhlas Bhojani Links */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">Ikhlas:</span>
+                    <a
+                      href="https://www.linkedin.com/in/ikhlas-bhojani/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Ikhlas Bhojani LinkedIn"
+                    >
+                      <Linkedin size={16} />
+                    </a>
+                    <a
+                      href="https://github.com/ikhlasbhojani"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Ikhlas Bhojani GitHub"
+                    >
+                      <Github size={16} />
+                    </a>
+                  </div>
+                  {/* Talal Ahmed Links */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">Talal:</span>
+                    <a
+                      href="https://www.linkedin.com/in/talal--ahmed/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Talal Ahmed LinkedIn"
+                    >
+                      <Linkedin size={16} />
+                    </a>
+                    <a
+                      href="https://github.com/Demolinator"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Talal Ahmed GitHub"
+                    >
+                      <Github size={16} />
+                    </a>
+                  </div>
+                  {/* Muhammad Qasim Links */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium">Qasim:</span>
+                    <a
+                      href="https://www.linkedin.com/in/sirqasim/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Muhammad Qasim LinkedIn"
+                    >
+                      <Linkedin size={16} />
+                    </a>
+                    <a
+                      href="https://github.com/EnggQasim"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      aria-label="Muhammad Qasim GitHub"
+                    >
+                      <Github size={16} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className={`text-xs ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+              <p>© {new Date().getFullYear()} LearnMe. Open Source under MIT License.</p>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

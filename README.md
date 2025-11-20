@@ -342,9 +342,31 @@ If you find LearnMe helpful, please consider:
 
 ---
 
+## 👥 Authors
+
+LearnMe was created by:
+
+- **[Ikhlas Bhojani](https://github.com/ikhlasbhojani)** - Co-creator and developer
+  - 🔗 [LinkedIn](https://www.linkedin.com/in/ikhlas-bhojani/)
+  - 💻 [GitHub](https://github.com/ikhlasbhojani)
+
+- **[Talal Ahmed](https://github.com/Demolinator)** - Co-creator and developer
+  - 🔗 [LinkedIn](https://www.linkedin.com/in/talal--ahmed/)
+  - 💻 [GitHub](https://github.com/Demolinator)
+
+- **[Muhammad Qasim](https://github.com/EnggQasim)** - Co-creator and developer
+  - 🔗 [LinkedIn](https://www.linkedin.com/in/sirqasim/)
+  - 💻 [GitHub](https://github.com/EnggQasim)
+
+We're passionate about making learning accessible and engaging through AI-powered technology.
+
+---
+
 <div align="center">
 
 **Built with ❤️ by the LearnMe Community**
+
+**Created by [Ikhlas Bhojani](https://github.com/ikhlasbhojani), [Talal Ahmed](https://github.com/Demolinator), and [Muhammad Qasim](https://github.com/EnggQasim)**
 
 [⬆ Back to Top](#-learnme---ai-powered-learning-platform)
 
