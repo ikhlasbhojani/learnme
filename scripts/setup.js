@@ -327,7 +327,7 @@ async function main() {
     console.error(chalk.red('\n❌ Setup failed with error:'));
     console.error(chalk.red(error.message));
     console.log(chalk.yellow('\nPlease check the error above and try again.'));
-    console.log(chalk.cyan('For help, visit: https://github.com/yourusername/LearnMe/issues\n'));
+    console.log(chalk.cyan('For help, visit: https://github.com/ikhlasbhojani/learnme/issues\n'));
     process.exit(1);
   }
 }

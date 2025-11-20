@@ -77,7 +77,7 @@ Before you begin, ensure you have:
 **One-command setup** - Clone, install everything, and you're ready to go:
 
 ```bash
-git clone https://github.com/ikhlasbhojani/LearnMe.git && cd LearnMe && npm run setup
+git clone https://github.com/ikhlasbhojani/learnme.git && cd learnme && npm run setup
 ```
 
 This single command will:
@@ -114,8 +114,8 @@ If you prefer manual control:
 
 1. **Clone the repository**
 ```bash
-git clone https://github.com/yourusername/LearnMe.git
-cd LearnMe
+git clone https://github.com/ikhlasbhojani/learnme.git
+cd learnme
 ```
 
 2. **Install uv (if not already installed)**
@@ -336,8 +336,8 @@ If you find LearnMe helpful, please consider:
 
 ## 📧 Contact & Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/LearnMe/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/LearnMe/discussions)
+- **Issues**: [GitHub Issues](https://github.com/ikhlasbhojani/learnme/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/ikhlasbhojani/learnme/discussions)
 - **Email**: your.email@example.com
 
 ---

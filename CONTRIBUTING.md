@@ -106,8 +106,8 @@ Add any other context or screenshots about the feature request.
 
 1. **Fork and Clone**
 ```bash
-git clone https://github.com/YOUR_USERNAME/LearnMe.git
-cd LearnMe
+git clone https://github.com/YOUR_USERNAME/learnme.git
+cd learnme
 ```
 
 2. **One-Command Setup**
@@ -141,8 +141,8 @@ If you prefer manual control over each step:
 
 1. **Fork and Clone**
 ```bash
-git clone https://github.com/YOUR_USERNAME/LearnMe.git
-cd LearnMe
+git clone https://github.com/YOUR_USERNAME/learnme.git
+cd learnme
 ```
 
 2. **Install uv** (if not installed)
@@ -526,7 +526,7 @@ Your contributions make LearnMe better for everyone. We appreciate your time and
 
 <div align="center">
 
-For questions about contributing, feel free to reach out via [GitHub Discussions](https://github.com/yourusername/LearnMe/discussions).
+For questions about contributing, feel free to reach out via [GitHub Discussions](https://github.com/ikhlasbhojani/learnme/discussions).
 
 </div>
 
