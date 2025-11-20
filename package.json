@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "setup": "node scripts/setup.js",
-    "start": "concurrently --kill-others --names \"FRONTEND,NODEJS,PYTHON\" --prefix-colors \"cyan,green,yellow\" \"cd frontend && npm run dev\" \"cd nodejs-backend && npm run dev\" \"cd python-backend && uv run uvicorn app.main:app --reload\"",
+    "start": "concurrently --kill-others --names \"FRONTEND,NODEJS,PYTHON\" --prefix-colors \"cyan,green,yellow\" \"cd frontend && npm run dev\" \"cd nodejs-backend && npm run dev\" \"cd python-backend && uv run uvicorn app.core.app:app --reload\"",
     "dev": "npm start",
     "install:frontend": "cd frontend && npm install",
     "install:nodejs": "cd nodejs-backend && npm install",
