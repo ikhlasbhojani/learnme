@@ -3,20 +3,43 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+// Helper to create chalk-like methods that support both direct calls and chaining
+function createChalkFallback() {
+  const createMethod = () => {
+    const fn = (s) => String(s);
+    fn.bold = (s) => String(s);
+    return fn;
+  };
+  
+  return {
+    cyan: createMethod(),
+    white: createMethod(),
+    gray: createMethod(),
+    green: createMethod(),
+    yellow: createMethod(),
+    red: createMethod(),
+    magenta: createMethod()
+  };
+}
+
+// Helper to ensure chalk is valid
+function ensureValidChalk() {
+  if (!chalk || typeof chalk.cyan !== 'function' || typeof chalk.red !== 'function') {
+    try {
+      chalk = require('chalk');
+    } catch (e) {
+      chalk = createChalkFallback();
+    }
+  }
+  return chalk;
+}
+
 let chalk;
 try {
   chalk = require('chalk');
 } catch (e) {
   // Fallback if chalk is not installed yet
-  chalk = {
-    cyan: { bold: (s) => s },
-    white: (s) => s,
-    gray: (s) => s,
-    green: (s) => s,
-    yellow: (s) => s,
-    red: (s) => s,
-    magenta: { bold: (s) => s }
-  };
+  chalk = createChalkFallback();
 }
 
 // Lazy require - will be loaded after root dependencies are installed
@@ -272,21 +295,26 @@ async function main() {
       try {
         delete require.cache[require.resolve('chalk')];
         chalk = require('chalk');
+        ensureValidChalk(); // Validate it's working
       } catch (e) {
-        console.warn('Warning: Could not reload chalk module');
+        console.warn('Warning: Could not reload chalk module, using fallback');
+        chalk = createChalkFallback();
       }
     } else {
       console.log('✅ Root dependencies already installed\n');
       // Ensure chalk is loaded
       try {
         chalk = require('chalk');
+        ensureValidChalk(); // Validate it's working
       } catch (e) {
         // If still can't load, try installing
         installRootDependencies();
         try {
           chalk = require('chalk');
+          ensureValidChalk(); // Validate it's working
         } catch (e2) {
-          console.warn('Warning: Could not load chalk module');
+          console.warn('Warning: Could not load chalk module, using fallback');
+          chalk = createChalkFallback();
         }
       }
     }
@@ -337,6 +365,9 @@ async function main() {
     displaySuccessMessage();
     
   } catch (error) {
+    // Ensure chalk is available in error handler
+    ensureValidChalk();
+    
     console.error(chalk.red('\n❌ Setup failed with error:'));
     console.error(chalk.red(error.message));
     console.log(chalk.yellow('\nPlease check the error above and try again.'));
