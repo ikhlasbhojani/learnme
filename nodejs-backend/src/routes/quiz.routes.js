@@ -11,7 +11,8 @@ const {
   resumeQuizHandler,
   finishQuizHandler,
   expireQuizHandler,
-  getQuizAssessmentHandler
+  getQuizAssessmentHandler,
+  deleteQuizHandler
 } = require('../controllers/quiz.controller');
 
 // Apply auth middleware to all quiz routes (simplified local-user mode)
@@ -28,6 +29,7 @@ router.post('/:id/resume', resumeQuizHandler);
 router.post('/:id/finish', finishQuizHandler);
 router.post('/:id/expire', expireQuizHandler);
 router.get('/:id/assessment', getQuizAssessmentHandler);
+router.delete('/:id', deleteQuizHandler);
 
 module.exports = router;
 

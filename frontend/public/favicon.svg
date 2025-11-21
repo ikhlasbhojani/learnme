@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <defs>
+    <!-- Gradient for left hemisphere (purple to magenta) -->
+    <linearGradient id="leftGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6B46C1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#9333EA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#C026D3;stop-opacity:0.9" />
+    </linearGradient>
+    
+    <!-- Gradient for right hemisphere (cyan to teal) -->
+    <linearGradient id="rightGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#0891B2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0E7490;stop-opacity:0.9" />
+    </linearGradient>
+    
+    <!-- Glow effect for nodes -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Dark grey background -->
+  <rect width="100" height="100" fill="#2D2D2D" rx="10"/>
+  
+  <!-- Brain shape - Left hemisphere (purple) -->
+  <path d="M 28 18 
+           Q 18 28, 22 42 
+           Q 22 52, 28 58 
+           Q 28 68, 33 73 
+           Q 38 78, 43 73 
+           Q 48 68, 48 58 
+           L 48 48 
+           Q 48 38, 43 33 
+           Q 38 28, 33 28 
+           Q 28 23, 28 18 Z" 
+        fill="url(#leftGradient)" 
+        opacity="0.75"
+        stroke="#9333EA" 
+        stroke-width="0.5" 
+        stroke-opacity="0.5"/>
+  
+  <!-- Brain shape - Right hemisphere (cyan) -->
+  <path d="M 48 18 
+           Q 58 28, 54 42 
+           Q 54 52, 48 58 
+           Q 48 68, 43 73 
+           Q 38 78, 33 73 
+           Q 28 68, 28 58 
+           L 28 48 
+           Q 28 38, 33 33 
+           Q 38 28, 43 28 
+           Q 48 23, 48 18 Z" 
+        fill="url(#rightGradient)" 
+        opacity="0.75"
+        stroke="#0891B2" 
+        stroke-width="0.5" 
+        stroke-opacity="0.5"/>
+  
+  <!-- Network connections - Left side (purple) -->
+  <g opacity="0.85" stroke-width="0.4">
+    <line x1="33" y1="33" x2="38" y2="38" stroke="#9333EA" opacity="0.7"/>
+    <line x1="38" y1="38" x2="33" y2="48" stroke="#9333EA" opacity="0.7"/>
+    <line x1="33" y1="48" x2="38" y2="58" stroke="#9333EA" opacity="0.7"/>
+    <line x1="38" y1="38" x2="28" y2="43" stroke="#9333EA" opacity="0.7"/>
+    <line x1="28" y1="43" x2="33" y2="53" stroke="#9333EA" opacity="0.7"/>
+    <line x1="33" y1="53" x2="38" y2="63" stroke="#9333EA" opacity="0.7"/>
+    <line x1="36" y1="28" x2="40" y2="35" stroke="#C026D3" opacity="0.6"/>
+    <line x1="40" y1="35" x2="35" y2="42" stroke="#C026D3" opacity="0.6"/>
+  </g>
+  
+  <!-- Network connections - Right side (cyan) -->
+  <g opacity="0.85" stroke-width="0.4">
+    <line x1="63" y1="33" x2="58" y2="38" stroke="#0891B2" opacity="0.7"/>
+    <line x1="58" y1="38" x2="63" y2="48" stroke="#0891B2" opacity="0.7"/>
+    <line x1="63" y1="48" x2="58" y2="58" stroke="#0891B2" opacity="0.7"/>
+    <line x1="58" y1="38" x2="68" y2="43" stroke="#0891B2" opacity="0.7"/>
+    <line x1="68" y1="43" x2="63" y2="53" stroke="#0891B2" opacity="0.7"/>
+    <line x1="63" y1="53" x2="58" y2="63" stroke="#0891B2" opacity="0.7"/>
+    <line x1="60" y1="28" x2="56" y2="35" stroke="#06B6D4" opacity="0.6"/>
+    <line x1="56" y1="35" x2="61" y2="42" stroke="#06B6D4" opacity="0.6"/>
+  </g>
+  
+  <!-- Central connections between hemispheres -->
+  <g opacity="0.8" stroke-width="0.5">
+    <line x1="43" y1="38" x2="53" y2="38" stroke="#9333EA" opacity="0.6"/>
+    <line x1="43" y1="48" x2="53" y2="48" stroke="#06B6D4" opacity="0.6"/>
+    <line x1="43" y1="58" x2="53" y2="58" stroke="#9333EA" opacity="0.6"/>
+    <line x1="45" y1="35" x2="51" y2="40" stroke="#C026D3" opacity="0.5"/>
+    <line x1="45" y1="62" x2="51" y2="57" stroke="#0891B2" opacity="0.5"/>
+  </g>
+  
+  <!-- Network nodes - Left side (purple) -->
+  <g filter="url(#glow)">
+    <circle cx="33" cy="33" r="1.5" fill="#C026D3" opacity="0.95"/>
+    <circle cx="38" cy="38" r="1.5" fill="#9333EA" opacity="0.95"/>
+    <circle cx="33" cy="48" r="1.5" fill="#9333EA" opacity="0.95"/>
+    <circle cx="38" cy="58" r="1.5" fill="#C026D3" opacity="0.95"/>
+    <circle cx="28" cy="43" r="1.2" fill="#6B46C1" opacity="0.9"/>
+    <circle cx="33" cy="53" r="1.5" fill="#9333EA" opacity="0.95"/>
+    <circle cx="38" cy="63" r="1.2" fill="#C026D3" opacity="0.9"/>
+    <circle cx="36" cy="28" r="1" fill="#9333EA" opacity="0.85"/>
+    <circle cx="40" cy="35" r="1" fill="#C026D3" opacity="0.85"/>
+    <circle cx="35" cy="42" r="1" fill="#9333EA" opacity="0.85"/>
+  </g>
+  
+  <!-- Network nodes - Right side (cyan) -->
+  <g filter="url(#glow)">
+    <circle cx="63" cy="33" r="1.5" fill="#06B6D4" opacity="0.95"/>
+    <circle cx="58" cy="38" r="1.5" fill="#0891B2" opacity="0.95"/>
+    <circle cx="63" cy="48" r="1.5" fill="#0891B2" opacity="0.95"/>
+    <circle cx="58" cy="58" r="1.5" fill="#06B6D4" opacity="0.95"/>
+    <circle cx="68" cy="43" r="1.2" fill="#0E7490" opacity="0.9"/>
+    <circle cx="63" cy="53" r="1.5" fill="#0891B2" opacity="0.95"/>
+    <circle cx="58" cy="63" r="1.2" fill="#06B6D4" opacity="0.9"/>
+    <circle cx="60" cy="28" r="1" fill="#0891B2" opacity="0.85"/>
+    <circle cx="56" cy="35" r="1" fill="#06B6D4" opacity="0.85"/>
+    <circle cx="61" cy="42" r="1" fill="#0891B2" opacity="0.85"/>
+  </g>
+  
+  <!-- Central nodes (blend of both colors) -->
+  <g filter="url(#glow)" opacity="0.9">
+    <circle cx="48" cy="38" r="1.3" fill="#C026D3" opacity="0.8"/>
+    <circle cx="48" cy="48" r="1.8" fill="#06B6D4" opacity="0.9"/>
+    <circle cx="48" cy="58" r="1.3" fill="#0891B2" opacity="0.8"/>
+    <circle cx="45" cy="35" r="1" fill="#9333EA" opacity="0.75"/>
+    <circle cx="51" cy="40" r="1" fill="#06B6D4" opacity="0.75"/>
+    <circle cx="45" cy="62" r="1" fill="#0891B2" opacity="0.75"/>
+    <circle cx="51" cy="57" r="1" fill="#C026D3" opacity="0.75"/>
+  </g>
+  
+  <!-- Additional scattered nodes for network complexity -->
+  <g filter="url(#glow)" opacity="0.75">
+    <circle cx="30" cy="25" r="0.9" fill="#9333EA"/>
+    <circle cx="42" cy="43" r="0.9" fill="#C026D3"/>
+    <circle cx="30" cy="72" r="0.9" fill="#6B46C1"/>
+    <circle cx="66" cy="25" r="0.9" fill="#06B6D4"/>
+    <circle cx="54" cy="43" r="0.9" fill="#0891B2"/>
+    <circle cx="66" cy="72" r="0.9" fill="#0E7490"/>
+  </g>
+</svg>

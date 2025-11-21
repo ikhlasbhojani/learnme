@@ -71,6 +71,14 @@ export function useQuiz(): UseQuizReturn {
     try {
       const startedQuiz = await quizService.startQuiz(quizId)
       setQuiz(startedQuiz)
+
+      // Set current question index to first unanswered question
+      if (startedQuiz.questions && Array.isArray(startedQuiz.questions)) {
+        const answers = startedQuiz.answers ?? {}
+        const firstUnansweredIndex = startedQuiz.questions.findIndex((q) => !answers[q.id])
+        const nextIndex = firstUnansweredIndex === -1 ? 0 : firstUnansweredIndex
+        setCurrentQuestionIndex(nextIndex)
+      }
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to start quiz'
       setError(errorMessage)

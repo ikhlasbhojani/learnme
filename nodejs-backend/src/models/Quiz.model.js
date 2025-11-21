@@ -200,6 +200,32 @@ class Quiz {
   }
 
   /**
+   * Delete quiz by ID
+   */
+  static async deleteById(id) {
+    const db = getDB();
+    
+    // Use transaction to delete all related data
+    await db.exec('BEGIN');
+    try {
+      // Delete answers
+      await db.run('DELETE FROM quiz_answers WHERE quiz_id = ?', [id]);
+      
+      // Delete questions
+      await db.run('DELETE FROM quiz_questions WHERE quiz_id = ?', [id]);
+      
+      // Delete quiz
+      await db.run('DELETE FROM quizzes WHERE id = ?', [id]);
+      
+      await db.exec('COMMIT');
+      return true;
+    } catch (e) {
+      await db.exec('ROLLBACK');
+      throw e;
+    }
+  }
+
+  /**
    * Convert to JSON
    */
   toJSON() {

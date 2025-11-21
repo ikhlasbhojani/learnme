@@ -476,98 +476,212 @@ export default function Home() {
       </Modal>
 
       {/* Footer */}
-      <footer className={`${isDark ? 'bg-[#0d1117] border-t border-[#30363d]' : 'bg-[#f6f8fa] border-t border-[#d0d7de]'} py-8`}>
+      <footer className={`${isDark ? 'bg-[#0d1117] border-t-2 border-[#30363d]' : 'bg-[#f6f8fa] border-t-2 border-[#d0d7de]'} py-12 mt-16`}>
         <div className="max-w-[1280px] mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className={`text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
-              <p className="font-medium mb-2">LearnMe - AI-Powered Learning Platform</p>
-              <div className="space-y-2">
-                <p className="text-xs">
-                  Created by{' '}
-                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {/* About Section */}
+            <div className="space-y-4">
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#1f2328]'}`}>
+                LearnMe
+              </h3>
+              <p className={`text-sm leading-relaxed ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+                An AI-native learning platform that transforms any web content into personalized quizzes and interactive learning experiences.
+              </p>
+              <div className="flex items-center gap-3">
+                <a
+                  href="https://github.com/ikhlasbhojani/learnme"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                    isDark 
+                      ? 'bg-[#21262d] text-[#58a6ff] hover:bg-[#30363d] hover:text-white border border-[#30363d]' 
+                      : 'bg-white text-[#0969da] hover:bg-[#f3f4f6] border border-[#d0d7de] shadow-sm'
+                  }`}
+                >
+                  <Github size={18} />
+                  View on GitHub
+                </a>
+              </div>
+            </div>
+
+            {/* Creators Section */}
+            <div className="space-y-4">
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#1f2328]'}`}>
+                Created By
+              </h3>
+              <div className="space-y-3">
+                {/* Ikhlas Bhojani */}
+                <div className="space-y-1">
+                  <p className={`text-sm font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
                     Ikhlas Bhojani
-                  </span>
-                  {', '}
-                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
-                    Talal Ahmed
-                  </span>
-                  {' '}and{' '}
-                  <span className={`font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
-                    Muhammad Qasim
-                  </span>
-                </p>
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* Ikhlas Bhojani Links */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Ikhlas:</span>
+                  </p>
+                  <div className="flex items-center gap-3">
                     <a
                       href="https://www.linkedin.com/in/ikhlas-bhojani/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Ikhlas Bhojani LinkedIn"
                     >
-                      <Linkedin size={16} />
+                      <Linkedin size={18} />
                     </a>
                     <a
                       href="https://github.com/ikhlasbhojani"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Ikhlas Bhojani GitHub"
                     >
-                      <Github size={16} />
+                      <Github size={18} />
                     </a>
                   </div>
-                  {/* Talal Ahmed Links */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Talal:</span>
+                </div>
+
+                {/* Talal Ahmed */}
+                <div className="space-y-1">
+                  <p className={`text-sm font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+                    Talal Ahmed
+                  </p>
+                  <div className="flex items-center gap-3">
                     <a
                       href="https://www.linkedin.com/in/talal--ahmed/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Talal Ahmed LinkedIn"
                     >
-                      <Linkedin size={16} />
+                      <Linkedin size={18} />
                     </a>
                     <a
                       href="https://github.com/Demolinator"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Talal Ahmed GitHub"
                     >
-                      <Github size={16} />
+                      <Github size={18} />
                     </a>
                   </div>
-                  {/* Muhammad Qasim Links */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-medium">Qasim:</span>
+                </div>
+
+                {/* Muhammad Qasim */}
+                <div className="space-y-1">
+                  <p className={`text-sm font-semibold ${isDark ? 'text-[#58a6ff]' : 'text-[#0969da]'}`}>
+                    Muhammad Qasim
+                  </p>
+                  <div className="flex items-center gap-3">
                     <a
                       href="https://www.linkedin.com/in/sirqasim/"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Muhammad Qasim LinkedIn"
                     >
-                      <Linkedin size={16} />
+                      <Linkedin size={18} />
                     </a>
                     <a
                       href="https://github.com/EnggQasim"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={`p-1.5 rounded-md transition-colors ${isDark ? 'hover:bg-[#21262d] text-[#8b949e] hover:text-[#58a6ff]' : 'hover:bg-[#eaeef2] text-[#656d76] hover:text-[#0969da]'}`}
+                      className={`p-2 rounded-lg transition-all ${
+                        isDark 
+                          ? 'bg-[#21262d] text-[#8b949e] hover:bg-[#30363d] hover:text-[#58a6ff] border border-[#30363d]' 
+                          : 'bg-white text-[#656d76] hover:bg-[#f3f4f6] hover:text-[#0969da] border border-[#d0d7de]'
+                      }`}
                       aria-label="Muhammad Qasim GitHub"
                     >
-                      <Github size={16} />
+                      <Github size={18} />
                     </a>
                   </div>
                 </div>
               </div>
             </div>
-            <div className={`text-xs ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
-              <p>© {new Date().getFullYear()} LearnMe. Open Source under MIT License.</p>
+
+            {/* Resources & Links Section */}
+            <div className="space-y-4">
+              <h3 className={`text-lg font-bold ${isDark ? 'text-white' : 'text-[#1f2328]'}`}>
+                Resources
+              </h3>
+              <div className={`text-sm space-y-3 ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+                <div>
+                  <p className="font-semibold mb-2">Features</p>
+                  <ul className="space-y-1">
+                    <li>• AI-Powered Quiz Generation</li>
+                    <li>• URL Content Extraction</li>
+                    <li>• Personalized Learning</li>
+                    <li>• Multiple AI Providers</li>
+                  </ul>
+                </div>
+                <div className="pt-2">
+                  <p className="font-semibold mb-2">Support</p>
+                  <ul className="space-y-1">
+                    <li>
+                      <a 
+                        href="https://github.com/ikhlasbhojani/learnme/blob/main/README.md" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`hover:underline ${isDark ? 'text-[#58a6ff] hover:text-white' : 'text-[#0969da] hover:text-[#1f2328]'}`}
+                      >
+                        Documentation
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://github.com/ikhlasbhojani/learnme/blob/main/CONTRIBUTING.md" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`hover:underline ${isDark ? 'text-[#58a6ff] hover:text-white' : 'text-[#0969da] hover:text-[#1f2328]'}`}
+                      >
+                        Contribute
+                      </a>
+                    </li>
+                    <li>
+                      <a 
+                        href="https://github.com/ikhlasbhojani/learnme/issues" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className={`hover:underline ${isDark ? 'text-[#58a6ff] hover:text-white' : 'text-[#0969da] hover:text-[#1f2328]'}`}
+                      >
+                        Report Issues
+                      </a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Bar */}
+          <div className={`pt-8 border-t ${isDark ? 'border-[#30363d]' : 'border-[#d0d7de]'} flex flex-col md:flex-row items-center justify-between gap-4`}>
+            <div className={`text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+              <p>
+                © {new Date().getFullYear()} LearnMe. All Rights Reserved.
+              </p>
+            </div>
+            <div className={`text-sm ${isDark ? 'text-[#8b949e]' : 'text-[#656d76]'}`}>
+              <p>
+                Built with <span className="text-red-500">❤️</span> for learners worldwide
+              </p>
             </div>
           </div>
         </div>

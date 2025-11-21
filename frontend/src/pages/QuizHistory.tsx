@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Clock, CheckCircle, XCircle, AlertCircle, Eye } from 'lucide-react'
+import { Clock, CheckCircle, XCircle, AlertCircle, Eye, Trash2 } from 'lucide-react'
 import { quizService } from '../services/quizService'
 import { QuizInstance } from '../types'
 import { useTheme } from '../contexts/ThemeContext'
@@ -15,6 +15,7 @@ export default function QuizHistory() {
   const [quizzes, setQuizzes] = useState<QuizInstance[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingQuizId, setDeletingQuizId] = useState<string | null>(null)
 
   useEffect(() => {
     const loadQuizzes = async () => {
@@ -78,6 +79,26 @@ export default function QuizHistory() {
       hour: '2-digit',
       minute: '2-digit',
     }).format(date)
+  }
+
+  const handleDeleteQuiz = async (quizId: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent card click
+
+    if (!window.confirm('Are you sure you want to delete this quiz? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeletingQuizId(quizId)
+      await quizService.deleteQuiz(quizId)
+      // Remove quiz from list
+      setQuizzes(quizzes.filter(quiz => quiz.id !== quizId))
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Failed to delete quiz'
+      alert(`Error: ${errorMessage}`)
+    } finally {
+      setDeletingQuizId(null)
+    }
   }
 
   if (loading) {
@@ -255,11 +276,66 @@ export default function QuizHistory() {
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Eye size={18} color={colors.text} style={{ opacity: 0.7 }} />
-                    <span style={{ fontSize: '14px', color: colors.text, opacity: 0.7 }}>
-                      {quiz.status === 'completed' || quiz.status === 'expired' ? 'View Results' : 'Continue Quiz'}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        cursor: 'pointer',
+                        padding: '8px',
+                        borderRadius: '6px',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onClick={(e) => {
+                        if (quiz.status === 'completed' || quiz.status === 'expired') {
+                          navigate(`/assessment/${quiz.id}`)
+                        } else if (quiz.status === 'in-progress' || quiz.status === 'pending') {
+                          navigate(`/quiz/${quiz.id}`)
+                        }
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isDark ? 'rgba(88, 166, 255, 0.1)' : 'rgba(9, 105, 218, 0.1)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                      }}
+                    >
+                      <Eye size={18} color={colors.text} style={{ opacity: 0.7 }} />
+                      <span style={{ fontSize: '14px', color: colors.text, opacity: 0.7 }}>
+                        {quiz.status === 'completed' || quiz.status === 'expired' ? 'View Results' : 'Continue Quiz'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => handleDeleteQuiz(quiz.id, e)}
+                      disabled={deletingQuizId === quiz.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '8px',
+                        backgroundColor: 'transparent',
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '6px',
+                        cursor: deletingQuizId === quiz.id ? 'not-allowed' : 'pointer',
+                        color: '#f85149',
+                        transition: 'all 0.2s',
+                        opacity: deletingQuizId === quiz.id ? 0.5 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (deletingQuizId !== quiz.id) {
+                          e.currentTarget.style.backgroundColor = 'rgba(248, 81, 73, 0.1)'
+                          e.currentTarget.style.borderColor = '#f85149'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent'
+                        e.currentTarget.style.borderColor = colors.border
+                      }}
+                      title="Delete quiz"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               </motion.div>

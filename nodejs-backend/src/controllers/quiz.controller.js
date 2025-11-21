@@ -740,6 +740,49 @@ const getQuizAssessmentHandler = async (req, res, next) => {
   }
 };
 
+/**
+ * DELETE /api/quizzes/:id
+ * Delete quiz
+ */
+const deleteQuizHandler = async (req, res, next) => {
+  try {
+    if (!req.authUser || !req.authUser.userId) {
+      req.authUser = { userId: 'local-user', email: 'local@localhost' };
+    }
+
+    const { id } = req.params;
+
+    const quiz = await Quiz.findById(id);
+
+    if (!quiz) {
+      return res.status(404).json({
+        message: 'Quiz not found',
+        error: 'Quiz with this ID does not exist'
+      });
+    }
+
+    if (!checkQuizOwnership(quiz, req.authUser.userId)) {
+      return res.status(403).json({
+        message: 'Access denied',
+        error: 'You are not allowed to delete this quiz'
+      });
+    }
+
+    await Quiz.deleteById(id);
+
+    res.status(200).json({
+      message: 'Quiz deleted successfully',
+      data: { id }
+    });
+  } catch (error) {
+    console.error('Delete quiz error:', error);
+    res.status(500).json({
+      message: 'Failed to delete quiz',
+      error: 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   listQuizzesHandler,
   createQuizHandler,
@@ -750,6 +793,7 @@ module.exports = {
   resumeQuizHandler,
   finishQuizHandler,
   expireQuizHandler,
-  getQuizAssessmentHandler
+  getQuizAssessmentHandler,
+  deleteQuizHandler
 };
 

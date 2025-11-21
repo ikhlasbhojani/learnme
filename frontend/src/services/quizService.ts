@@ -174,5 +174,17 @@ export const quizService = {
       throw new Error(errorMessage)
     }
   },
+
+  /**
+   * Delete a quiz
+   */
+  async deleteQuiz(quizId: string): Promise<void> {
+    try {
+      await apiClient.delete(`/quizzes/${quizId}`)
+    } catch (error: any) {
+      const errorMessage = error?.response?.data?.message || error?.message || 'Failed to delete quiz'
+      throw new Error(errorMessage)
+    }
+  },
 }
 

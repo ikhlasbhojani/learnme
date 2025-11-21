@@ -3,14 +3,18 @@ import React from 'react'
 interface TimerProps {
   timeRemaining: number
   totalTime: number
+  isInitialized?: boolean
 }
 
-export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime }) => {
-  const minutes = Math.floor(timeRemaining / 60)
-  const seconds = timeRemaining % 60
+export const Timer: React.FC<TimerProps> = ({ timeRemaining, totalTime, isInitialized = false }) => {
+  // If timer hasn't been initialized yet, show totalTime
+  // Once initialized, use timeRemaining (which will count down from totalTime to 0)
+  const displayTime = !isInitialized ? totalTime : timeRemaining
+  const minutes = Math.floor(displayTime / 60)
+  const seconds = displayTime % 60
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-  const percentage = totalTime > 0 ? (timeRemaining / totalTime) * 100 : 0
-  const isLowTime = timeRemaining < 60 // Less than 1 minute
+  const percentage = totalTime > 0 ? (displayTime / totalTime) * 100 : 0
+  const isLowTime = displayTime < 60 && displayTime > 0 // Less than 1 minute and not expired
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>

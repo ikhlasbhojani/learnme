@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { CheckCircle, XCircle, AlertCircle, TrendingUp, BookOpen } from 'lucide-react'
+import { CheckCircle, XCircle, AlertCircle, TrendingUp, BookOpen, Loader2 } from 'lucide-react'
 import { quizService } from '../services/quizService'
 import { AssessmentResult } from '../types'
 import { useTheme } from '../contexts/ThemeContext'
@@ -50,9 +50,103 @@ export default function Assessment() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: isDark ? '#0d1117' : '#ffffff',
         }}
       >
-        <div style={{ fontSize: '18px', color: colors.text }}>Loading assessment...</div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '24px',
+          }}
+        >
+          {/* Animated Spinner */}
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{
+              duration: 1,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            style={{
+              width: '64px',
+              height: '64px',
+            }}
+          >
+            <Loader2
+              size={64}
+              style={{
+                color: isDark ? '#58a6ff' : '#0969da',
+              }}
+            />
+          </motion.div>
+
+          {/* Loading Text */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 600,
+                color: colors.text,
+              }}
+            >
+              Loading assessment...
+            </div>
+            <div
+              style={{
+                fontSize: '14px',
+                color: isDark ? '#8b949e' : '#656d76',
+              }}
+            >
+              Preparing your results...
+            </div>
+          </motion.div>
+
+          {/* Progress Dots */}
+          <motion.div
+            style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '8px',
+            }}
+          >
+            {[0, 1, 2].map((index) => (
+              <motion.div
+                key={index}
+                animate={{
+                  scale: [1, 1.2, 1],
+                  opacity: [0.5, 1, 0.5],
+                }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  delay: index * 0.2,
+                  ease: 'easeInOut',
+                }}
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: isDark ? '#58a6ff' : '#0969da',
+                }}
+              />
+            ))}
+          </motion.div>
+        </motion.div>
       </div>
     )
   }
